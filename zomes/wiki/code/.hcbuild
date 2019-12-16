@@ -5,8 +5,35 @@
       "arguments": [
         "build",
         "--release",
-        "--target=wasm32-unknown-unknown",
-        "--target-dir=target"
+        "--target=wasm32-unknown-unknown"
+      ]
+    },
+    {
+      "command": "wasm-gc",
+      "arguments": ["target/wasm32-unknown-unknown/release/wiki.wasm"]
+    },
+    {
+      "command": "wasm-opt",
+      "arguments": [
+        "-Oz",
+        "--vacuum",
+        "target/wasm32-unknown-unknown/release/wiki.wasm"
+      ]
+    },
+    {
+      "command": "wasm2wat",
+      "arguments": [
+        "target/wasm32-unknown-unknown/release/wiki.wasm",
+        "-o",
+        "target/wasm32-unknown-unknown/release/wiki.wat"
+      ]
+    },
+    {
+      "command": "wat2wasm",
+      "arguments": [
+        "target/wasm32-unknown-unknown/release/wiki.wat",
+        "-o",
+        "target/wasm32-unknown-unknown/release/wiki.wasm"
       ]
     }
   ],
