@@ -1,19 +1,20 @@
-/// NB: The try-o-rama config patterns are still not quite stabilized.
-/// See the try-o-rama README [https://github.com/holochain/try-o-rama]
-/// for a potentially more accurate example
+const path = require("path");
 
-const path = require('path')
-const tape = require('tape')
+const {
+  Orchestrator,
+  Config,
+  tapeExecutor,
+  singleConductor,
+  combine,
+  callSync
+} = require("@holochain/try-o-rama");
 
-const { Orchestrator, Config, tapeExecutor, singleConductor, combine  } = require('@holochain/try-o-rama')
-
-process.on('unhandledRejection', error => {
+process.on("unhandledRejection", error => {
   // Will print "unhandledRejection err is not defined"
-  console.error('got unhandledRejection:', error);
+  console.error("got unhandledRejection:", error);
 });
 
-const dnaPath = path.join(__dirname, "../dist/holo-wiki-back.dna.json")
-const dna = Diorama.dna(dnaPath, 'holo-wiki-back')
+const dnaPath = path.join(__dirname, "../dist/holo_wiki.dna.json");
 
 const orchestrator = new Orchestrator({
   middleware: combine(
@@ -21,47 +22,63 @@ const orchestrator = new Orchestrator({
     // for in-memory testing purposes.
     // Remove this middleware for other "real" network types which can actually
     // send messages across conductors
-    singleConductor,
-
+    // singleConductor,
+    // callSync,
     // use the tape harness to run the tests, injects the tape API into each scenario
     // as the second argument
-    tapeExecutor(require('tape'))
+    tapeExecutor(require("tape"))
   ),
 
   globalConfig: {
-    logger: true,
-    network: 'memory',  // must use singleConductor middleware if using in-memory network
-  },
+    logger: false,
+    network: {
+      type: "sim2h",
+      sim2h_url: "wss://sim2h.holochain.org:9000"
+    } // must use singleConductor middleware if using in-memory network
+  }
 
   // the following are optional:
-
-  waiter: {
-    softTimeout: 5000,
-    hardTimeout: 10000,
-  },
-})
+});
 
 const conductorConfig = {
   instances: {
-    myInstanceName: Config.dna('/path/to/my/dna/change/me.dna.json', 'scaffold-test')
+    holo_wiki: Config.dna(dnaPath, "holo_wiki")
   }
-}
-
-orchestrator.registerScenario("description of example test", async (s, t) => {
-
-  const {alice, bob} = await s.players({alice: conductorConfig, bob: conductorConfig})
-
-  // Make a call to a Zome function
-  // indicating the function, and passing it an input
-  const addr = await alice.call("myInstanceName", "my_zome", "create_my_entry", {"entry" : {"content":"sample content"}})
-
-  // Wait for all network activity to
-  await s.consistency()
-
-  const result = await alice.call("myInstanceName", "my_zome", "get_my_entry", {"address": addr.Ok})
-
-  // check for equality of the actual and expected results
-  t.deepEqual(result, { Ok: { App: [ 'my_entry', '{"content":"sample content"}' ] } })
-})
-
-orchestrator.run()
+};
+orchestrator.registerScenario("create profile test", async (s, t) => {
+  // the 'true' is for 'start', which means boot the Conductors
+  const { alice } = await s.players({ alice: conductorConfig }, true);
+  const addr = await alice.call("holo_wiki", "wiki", "create_page", {
+    tag: "venezuela"
+  });
+  await s.consistency();
+  const addr2 = await alice.call("holo_wiki", "wiki", "create_page_elements", {
+    elements: [
+      {
+        parent_page_anchor: addr.Ok,
+        element_type: "p",
+        element_content: "hola"
+      }
+    ],
+    page_adress: addr.Ok
+  });
+  await s.consistency();
+  const addr3 = await alice.call("holo_wiki", "wiki", "get_page", {
+    address: addr.Ok
+  });
+  const addr4 = await alice.call("holo_wiki", "wiki", "get_elements_page", {
+    address: addr.Ok
+  });
+  const addr6 = await alice.call("holo_wiki", "wiki", "add_page_element", {
+    element: {
+      parent_page_anchor: addr.Ok,
+      element_type: "p",
+      element_content: "hola2"
+    },
+    page_adress: addr.Ok
+  });
+  const addr5 = await alice.call("holo_wiki", "wiki", "get_elements_page", {
+    address: addr.Ok
+  });
+});
+orchestrator.run();

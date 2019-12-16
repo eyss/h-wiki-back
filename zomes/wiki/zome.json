@@ -1,3 +1,4 @@
 {
-  "description": "The wiki App"
+  "name": "wiki",
+  "description": "Generated from the rust-zome-template"
 }
