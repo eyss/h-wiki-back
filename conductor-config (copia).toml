@@ -21,7 +21,8 @@ dna = 'hc-run-dna'
 id = 'wiki'
 
 [instances.storage]
-type = 'memory'
+path = 'example-config/tmp-storage'
+type = 'pickle'
 
 [[interfaces]]
 admin = true
@@ -31,7 +32,7 @@ id = 'websocket-interface'
 id = 'wiki'
 
 [interfaces.driver]
-port = 8885
+port = 8800
 type = 'websocket'
 
 [logger]
