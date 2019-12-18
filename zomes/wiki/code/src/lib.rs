@@ -70,10 +70,6 @@ mod wiki {
         holochain_anchors::anchor_definition()
     }
     #[entry_def]
-    fn root_anchor_def() -> ValidatingEntryType {
-        holochain_anchors::root_anchor_definition()
-    }
-    #[entry_def]
     fn user_def() -> ValidatingEntryType {
         entry!(
             name: "user",

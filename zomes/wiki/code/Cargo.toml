@@ -12,7 +12,7 @@ hdk = "=0.0.40-alpha1"
 hdk_proc_macros = "=0.0.40-alpha1"
 holochain_wasm_utils = "=0.0.40-alpha1"
 holochain_json_derive = "=0.0.1-alpha2"
-holochain_anchors= "0.1"
+holochain_anchors = "0.2.0"
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]

@@ -12,7 +12,7 @@ test_agent = true
 
 [[dnas]]
 file = '/home/empleado/Escritorio/holo_wiki/dist/holo_wiki.dna.json'
-hash = 'QmfBCDuQHvtexsmc2WxPVaC8fNztdwXUGffsnuVRo47bbw'
+hash = 'QmfZj8uNX5sMLohvdQq7NfW9wxVP26TE77gj9NYB7ujdyR'
 id = 'hc-run-dna'
 
 [[instances]]
@@ -32,7 +32,7 @@ id = 'websocket-interface'
 id = 'wiki'
 
 [interfaces.driver]
-port = 8888
+port = 8800
 type = 'websocket'
 
 [logger]
