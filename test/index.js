@@ -33,7 +33,7 @@ const orchestrator = new Orchestrator({
     logger: false,
     network: {
       type: "sim2h",
-      sim2h_url: "wss://sim2h.holochain.org:9000"
+      sim2h_url: "wss://0.0.0.0:9000"
     } // must use singleConductor middleware if using in-memory network
   }
 
@@ -48,37 +48,24 @@ const conductorConfig = {
 orchestrator.registerScenario("create profile test", async (s, t) => {
   // the 'true' is for 'start', which means boot the Conductors
   const { alice } = await s.players({ alice: conductorConfig }, true);
-  const addr = await alice.call("holo_wiki", "wiki", "create_page", {
-    tag: "venezuela"
-  });
+  const addr = await alice.call(
+    "holo_wiki",
+    "wiki",
+    "create_page_with_elements",
+    {
+      titulo: "venezuela",
+      contents: [
+        {
+          element_type: "p",
+          element_content: "hola"
+        }
+      ]
+    }
+  );
   await s.consistency();
-  const addr2 = await alice.call("holo_wiki", "wiki", "create_page_elements", {
-    elements: [
-      {
-        parent_page_anchor: addr.Ok,
-        element_type: "p",
-        element_content: "hola"
-      }
-    ],
-    page_adress: addr.Ok
+  await alice.call("holo_wiki", "wiki", "get_page", {
+    titulo: "venezuela"
   });
-  await s.consistency();
-  const addr3 = await alice.call("holo_wiki", "wiki", "get_page", {
-    address: addr.Ok
-  });
-  const addr4 = await alice.call("holo_wiki", "wiki", "get_elements_page", {
-    address: addr.Ok
-  });
-  const addr6 = await alice.call("holo_wiki", "wiki", "add_page_element", {
-    element: {
-      parent_page_anchor: addr.Ok,
-      element_type: "p",
-      element_content: "hola2"
-    },
-    page_adress: addr.Ok
-  });
-  const addr5 = await alice.call("holo_wiki", "wiki", "get_elements_page", {
-    address: addr.Ok
-  });
+  const addr3 = await alice.call("holo_wiki", "wiki", "get_home_page", {});
 });
 orchestrator.run();
