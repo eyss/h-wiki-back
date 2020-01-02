@@ -1,0 +1,18 @@
+
+bridges = []
+
+[[instances]]
+name = "holo_wiki"
+id = "__holo_wiki"
+dna_hash = "QmQKTqX4UwY2RDKt3rvoCd7ksXit1Syg9rXCrFiq2RcqA3"
+uri = "holo_wiki.dna.json"
+
+[[UIs]]
+name = "H-Wiki"
+id = "H-Wiki-app"
+ui_bundle_hash = "Qm34abcde"
+uri = "file:./holowiki.zip"
+
+[[UIs.instance_references]]
+ui_handle = "holo_wiki"
+instance_id = "__holo_wiki"

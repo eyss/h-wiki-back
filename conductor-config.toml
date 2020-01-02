@@ -12,7 +12,7 @@ test_agent = true
 
 [[dnas]]
 file = '/home/empleado/Escritorio/holo_wiki/dist/holo_wiki.dna.json'
-hash = 'QmeZQLM4VREs7qXE3n92je5wrpsuEd1ZNwaHPGMWDg5P96'
+hash = 'QmQKTqX4UwY2RDKt3rvoCd7ksXit1Syg9rXCrFiq2RcqA3'
 id = 'hc-run-dna'
 
 [[instances]]

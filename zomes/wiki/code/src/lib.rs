@@ -63,6 +63,11 @@ pub struct HomePage {
     sections: Vec<PageElement>,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
+pub struct Test {
+    section_address: Address,
+    content: String,
+}
+#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 struct Anchor {
     anchor_type: String,
     anchor_text: Option<String>,
@@ -359,7 +364,7 @@ mod wiki {
             .map(|strin| PageElement {
                 parent_page_anchor: None,
                 element_type: "text".to_string(),
-                element_content: format!("({})[#]", strin),
+                element_content: format!("[{}](#)", strin),
             })
             .collect();
         Ok(HomePage {
@@ -486,6 +491,13 @@ mod wiki {
         before_element_address: Address,
         titulo: String,
     ) -> ZomeApiResult<Address> {
+        inner_add_page_element_ordered(element, before_element_address, titulo)
+    }
+    fn inner_add_page_element_ordered(
+        element: PageElement,
+        before_element_address: Address,
+        titulo: String,
+    ) -> ZomeApiResult<Address> {
         let page_adress = get_page_address_by_titulo(titulo.clone())?;
         let elements_anchor_address = get_anchor_address("wikiPage".into(), titulo.clone().into())?;
         let mut element = element;
@@ -519,5 +531,31 @@ mod wiki {
             }
             Err(r) => Err(r),
         }
+    }
+    fn inner_add_page_elements_ordereds(
+        sections: &mut Vec<Test>,
+        titulo: String,
+    ) -> ZomeApiResult<String> {
+        match sections.pop() {
+            Some(t) => {
+                inner_add_page_elements_ordereds(sections, titulo.clone())?;
+                inner_add_page_element_ordered(
+                    PageElement {
+                        parent_page_anchor: None,
+                        element_type: "text".to_string(),
+                        element_content: t.content,
+                    },
+                    t.section_address,
+                    titulo.clone(),
+                )?;
+                return Ok(titulo.clone());
+            }
+            None => return Ok(titulo.clone()),
+        }
+    }
+    #[zome_fn("hc_public")]
+    fn add_page_elements_ordereds(sections: Vec<Test>, titulo: String) -> ZomeApiResult<String> {
+        let mut sections = sections;
+        inner_add_page_elements_ordereds(&mut sections, titulo)
     }
 }
