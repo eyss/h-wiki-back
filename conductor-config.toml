@@ -12,13 +12,13 @@ test_agent = true
 
 [[dnas]]
 file = '/home/empleado/Escritorio/holo_wiki/dist/holo_wiki.dna.json'
-hash = 'QmQKTqX4UwY2RDKt3rvoCd7ksXit1Syg9rXCrFiq2RcqA3'
+hash = 'QmQi2zjS9aUdAgpsM4dRCRfDRm5i22wpQmxa7h2RDH5kCk'
 id = 'hc-run-dna'
 
 [[instances]]
 agent = 'hc-run-agent'
 dna = 'hc-run-dna'
-id = 'wiki'
+id = '__H_Wiki'
 
 [instances.storage]
 type = 'memory'
@@ -28,10 +28,10 @@ admin = true
 id = 'websocket-interface'
 
 [[interfaces.instances]]
-id = 'wiki'
+id = '__H_Wiki'
 
 [interfaces.driver]
-port = 8885
+port = 3400
 type = 'websocket'
 
 [logger]
