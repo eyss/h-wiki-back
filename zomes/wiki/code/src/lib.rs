@@ -37,10 +37,16 @@ pub struct User {
     agent_adress: Address,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
+pub enum Content {
+    Text(String),
+    Binarys(Vec<u8>),
+}
+#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct PageElement {
     parent_page_anchor: Option<Address>,
-    element_type: String,
-    element_content: String,
+    r#type: String,
+    content: Content,
+    rendered_content: String,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct WikiPage {
@@ -50,7 +56,7 @@ pub struct WikiPage {
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct Section {
     address: Address,
-    redered_page_element: PageElement,
+    section: PageElement,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct Page {
@@ -61,11 +67,6 @@ pub struct Page {
 pub struct HomePage {
     title: String,
     sections: Vec<PageElement>,
-}
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct Test {
-    section_address: Address,
-    content: String,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 struct Anchor {
@@ -176,7 +177,7 @@ mod wiki {
     //     Ok(user_adress)
     // }
     #[zome_fn("hc_public")]
-    fn create_page(title: String) -> ZomeApiResult<Address> {
+    fn create_page(title: String) -> ZomeApiResult<String> {
         let page_anchor_address = get_anchor_address("wikiPage".into(), title.clone().into())?;
         let vec: Vec<Address> = Vec::new();
         let page_entry = Entry::App(
@@ -187,19 +188,19 @@ mod wiki {
             }
             .into(),
         );
-        let page_adress = hdk::utils::commit_and_link(
+        hdk::utils::commit_and_link(
             &page_entry,
             &page_anchor_address,
             "anchor->wikiPage",
             &title,
         )?;
-        Ok(page_adress)
+        Ok(title)
     }
     #[zome_fn("hc_public")]
     fn create_page_with_elements(
         contents: Vec<PageElement>,
         title: String,
-    ) -> ZomeApiResult<Address> {
+    ) -> ZomeApiResult<String> {
         let page_anchor_address = get_anchor_address("wikiPage".into(), title.clone().into())?;
 
         let vector: Vec<Address> = contents
@@ -226,9 +227,9 @@ mod wiki {
             }
             .into(),
         );
-        let page_adress =
-            hdk::utils::commit_and_link(&page_entry, &page_anchor_address, "anchor->wikiPage", "")?;
-        Ok(page_adress)
+
+        hdk::utils::commit_and_link(&page_entry, &page_anchor_address, "anchor->wikiPage", "")?;
+        Ok(title)
     }
     // fn get_page_by_anchor(address: Address) -> ZomeApiResult<Address> {
     //     hdk::api::get_links(
@@ -243,6 +244,16 @@ mod wiki {
     fn get_page_address_by_title(title: String) -> ZomeApiResult<Address> {
         hdk::api::get_links(
             &get_anchor_address("wikiPage".into(), title.into())?,
+            LinkMatch::Exactly("anchor->wikiPage".into()),
+            LinkMatch::Any,
+        )?
+        .addresses()
+        .pop()
+        .ok_or(hdk::error::ZomeApiError::Internal("error".into()))
+    }
+    fn get_page_address(anchor_address: Address) -> ZomeApiResult<Address> {
+        hdk::api::get_links(
+            &anchor_address,
             LinkMatch::Exactly("anchor->wikiPage".into()),
             LinkMatch::Any,
         )?
@@ -274,25 +285,24 @@ mod wiki {
             .filter_map(Result::ok)
             .collect())
     }
+    fn get_title(address: Address) -> ZomeApiResult<String> {
+        if let Ok(Some(App(_, json))) = hdk::api::get_entry(&address) {
+            if let Ok(anchor) = serde_json::from_str::<Anchor>(&Into::<String>::into(json)) {
+                Ok(anchor.anchor_text.unwrap())
+            } else {
+                Err(hdk::error::ZomeApiError::Internal("vacio".into()))
+            }
+        } else {
+            Err(hdk::error::ZomeApiError::Internal("vacio".into()))
+        }
+    }
     fn get_titles() -> ZomeApiResult<Vec<String>> {
         match get_anchor_pages("wikiPage".to_string())?.pop() {
             Some(address) => Ok(
                 hdk::api::get_links(&address, LinkMatch::Any, LinkMatch::Any)?
                     .addresses()
                     .into_iter()
-                    .map(|address| {
-                        if let Ok(Some(App(_, json))) = hdk::api::get_entry(&address) {
-                            if let Ok(anchor) =
-                                serde_json::from_str::<Anchor>(&Into::<String>::into(json))
-                            {
-                                anchor.anchor_text.ok_or("")
-                            } else {
-                                Err("error")
-                            }
-                        } else {
-                            Err("erros")
-                        }
-                    })
+                    .map(|address| get_title(address))
                     .filter_map(Result::ok)
                     .collect(),
             ),
@@ -345,7 +355,7 @@ mod wiki {
             |address: Address| match hdk::utils::get_as_type(address.clone()) {
                 Ok(t) => Ok(Section {
                     address: address.clone(),
-                    redered_page_element: t,
+                    section: t,
                 }),
                 Err(r) => Err(r),
             },
@@ -363,8 +373,9 @@ mod wiki {
             .into_iter()
             .map(|strin| PageElement {
                 parent_page_anchor: None,
-                element_type: "text".to_string(),
-                element_content: format!("[{}](#)", strin),
+                r#type: "text".to_string(),
+                content: Content::Text(format!("[{}](#)", strin)),
+                rendered_content: format!("<a href='#'>{}</a>", strin),
             })
             .collect();
         Ok(HomePage {
@@ -372,29 +383,25 @@ mod wiki {
             sections: vec,
         })
     }
-    #[zome_fn("hc_public")]
-    fn delete_page(title: String) -> ZomeApiResult<Address> {
-        let address = get_page_address_by_title(title)?;
-        if let Ok(t) = hdk::utils::get_as_type::<WikiPage>(address.clone()) {
-            let _hola = t
-                .clone()
-                .redered_page_element
-                .into_iter()
-                .map(|element: Address| hdk::api::remove_entry(&element));
-        };
-        hdk::api::remove_entry(&address)
+    fn get_page_address_by_element_address(element_address: Address) -> ZomeApiResult<Address> {
+        let element = get_element(element_address.clone());
+        get_page_address(element?.parent_page_anchor.unwrap())
+    }
+    fn get_title_by_element_address(element_address: Address) -> ZomeApiResult<String> {
+        let element = get_element(element_address.clone());
+        get_title(element?.parent_page_anchor.unwrap())
     }
     #[zome_fn("hc_public")]
-    fn delete_element(title: String, element_address: Address) -> ZomeApiResult<Address> {
-        let page_adress = get_page_address_by_title(title)?;
-        if let Ok(t) = hdk::utils::get_as_type::<WikiPage>(page_adress.clone()) {
+    fn delete_element(element_address: Address) -> ZomeApiResult<String> {
+        let page_address = get_page_address_by_element_address(element_address.clone())?;
+        if let Ok(t) = hdk::utils::get_as_type::<WikiPage>(page_address.clone()) {
             let mut t = t;
             let nuevo_vector =
                 inner_delete_element(t.clone().redered_page_element, element_address.clone());
             t.redered_page_element = nuevo_vector;
-            hdk::api::update_entry(Entry::App("wikiPage".into(), t.into()), &page_adress)?;
+            hdk::api::update_entry(Entry::App("wikiPage".into(), t.into()), &page_address)?;
         }
-        Ok(element_address)
+        get_title_by_element_address(element_address)
     }
     fn inner_delete_element(mut vector: Vec<Address>, address: Address) -> Vec<Address> {
         match vector.pop() {
@@ -412,7 +419,17 @@ mod wiki {
     }
     #[zome_fn("hc_public")]
     fn update_element(address: Address, element: PageElement) -> ZomeApiResult<Address> {
-        let element_entry = Entry::App("pageElement".into(), element.into());
+        let old_element = get_element(address.clone())?;
+        let element_entry = Entry::App(
+            "pageElement".into(),
+            PageElement {
+                parent_page_anchor: old_element.parent_page_anchor,
+                r#type: element.r#type,
+                content: element.content,
+                rendered_content: element.rendered_content,
+            }
+            .into(),
+        );
         hdk::api::update_entry(element_entry, &address)
     }
     #[zome_fn("hc_public")]
@@ -427,13 +444,12 @@ mod wiki {
             .map(|address: Address| hdk::utils::get_as_type::<PageElement>(address))
             .collect()
     }
-    #[zome_fn("hc_public")]
     fn get_element(address: Address) -> ZomeApiResult<PageElement> {
         hdk::utils::get_as_type(address)
     }
 
     #[zome_fn("hc_public")]
-    fn add_page_element(element: PageElement, title: String) -> ZomeApiResult<Address> {
+    fn add_page_element(element: PageElement, title: String) -> ZomeApiResult<String> {
         let page_adress = get_page_address_by_title(title.clone())?;
         let elements_anchor_address = get_anchor_address("wikiPage".into(), title.clone().into())?;
         let mut element = element;
@@ -461,7 +477,7 @@ mod wiki {
                     ),
                     &page_adress,
                 )?;
-                Ok(address)
+                Ok(title)
             }
             Err(r) => Err(r),
         }
@@ -489,16 +505,15 @@ mod wiki {
     fn add_page_element_ordered(
         element: PageElement,
         before_element_address: Address,
-        title: String,
-    ) -> ZomeApiResult<Address> {
-        inner_add_page_element_ordered(element, before_element_address, title)
+    ) -> ZomeApiResult<String> {
+        inner_add_page_element_ordered(element, before_element_address)
     }
     fn inner_add_page_element_ordered(
         element: PageElement,
         before_element_address: Address,
-        title: String,
-    ) -> ZomeApiResult<Address> {
-        let page_adress = get_page_address_by_title(title.clone())?;
+    ) -> ZomeApiResult<String> {
+        let title = get_title(before_element_address.clone())?;
+        let page_address = get_page_address_by_element_address(before_element_address.clone())?;
         let elements_anchor_address = get_anchor_address("wikiPage".into(), title.clone().into())?;
         let mut element = element;
         element.parent_page_anchor = Some(elements_anchor_address.clone());
@@ -510,7 +525,7 @@ mod wiki {
             "",
         )?;
 
-        match hdk::utils::get_as_type::<WikiPage>(page_adress.clone()) {
+        match hdk::utils::get_as_type::<WikiPage>(page_address.clone()) {
             Ok(t) => {
                 let vector = t.redered_page_element;
 
@@ -525,37 +540,11 @@ mod wiki {
                         }
                         .into(),
                     ),
-                    &page_adress,
+                    &page_address,
                 )?;
-                Ok(address)
+                Ok(title)
             }
             Err(r) => Err(r),
         }
-    }
-    fn inner_add_page_elements_ordereds(
-        sections: &mut Vec<Test>,
-        title: String,
-    ) -> ZomeApiResult<String> {
-        match sections.pop() {
-            Some(t) => {
-                inner_add_page_elements_ordereds(sections, title.clone())?;
-                inner_add_page_element_ordered(
-                    PageElement {
-                        parent_page_anchor: None,
-                        element_type: "text".to_string(),
-                        element_content: t.content,
-                    },
-                    t.section_address,
-                    title.clone(),
-                )?;
-                return Ok(title.clone());
-            }
-            None => return Ok(title.clone()),
-        }
-    }
-    #[zome_fn("hc_public")]
-    fn add_page_elements_ordereds(sections: Vec<Test>, title: String) -> ZomeApiResult<String> {
-        let mut sections = sections;
-        inner_add_page_elements_ordereds(&mut sections, title)
     }
 }

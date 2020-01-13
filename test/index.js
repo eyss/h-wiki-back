@@ -53,18 +53,19 @@ orchestrator.registerScenario("create profile test", async (s, t) => {
     "wiki",
     "create_page_with_elements",
     {
-      titulo: "venezuela",
+      title: "venezuela",
       contents: [
         {
-          element_type: "p",
-          element_content: "hola"
+          type: "p",
+          content: { Text: "text" },
+          rendered_content: "hol"
         }
       ]
     }
   );
   await s.consistency();
   await alice.call("holo_wiki", "wiki", "get_page", {
-    titulo: "venezuela"
+    title: "venezuela"
   });
   const addr3 = await alice.call("holo_wiki", "wiki", "get_home_page", {});
 });
