@@ -1,6 +1,7 @@
 # H-Wiki
 
-the holochain backend for H-Wiki, see [H-Wiki](#) for user interface
+the holochain backend for H-Wiki, see [H-Wiki](#) for user interface.
+
 Resources:
 [markdown](https://www.markdownguide.org/basic-syntax/)
 ## Running
