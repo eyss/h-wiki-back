@@ -14,7 +14,7 @@ This starts up the Conductor with a running instance of the DNA in it.
 
 Leave this terminal open and running, as long as you're doing development.
 
-##Testing
+## Testing
 ```
 holo-wiki-test
 ```
