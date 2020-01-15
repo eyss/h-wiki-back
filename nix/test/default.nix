@@ -1,6 +1,6 @@
 { pkgs }:
 let
-  script = pkgs.writeShellScriptBin "holo-wiki"
+  script = pkgs.writeShellScriptBin "holo-wiki-test"
   ''
   set -euxo pipefail
   hc test

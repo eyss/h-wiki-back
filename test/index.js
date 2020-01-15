@@ -1,3 +1,7 @@
+/// NB: The try-o-rama config patterns are still not quite stabilized.
+/// See the try-o-rama README [https://github.com/holochain/try-o-rama]
+/// for a potentially more accurate example
+
 const path = require("path");
 
 const {
@@ -5,9 +9,10 @@ const {
   Config,
   tapeExecutor,
   singleConductor,
+  localOnly,
   combine,
   callSync
-} = require("@holochain/try-o-rama");
+} = require("@holochain/tryorama");
 
 process.on("unhandledRejection", error => {
   // Will print "unhandledRejection err is not defined"
@@ -15,6 +20,49 @@ process.on("unhandledRejection", error => {
 });
 
 const dnaPath = path.join(__dirname, "../dist/holo_wiki.dna.json");
+
+const globalConfig = {
+  logger: {
+    type: "info",
+    rules: {
+      rules: [
+        {
+          exclude: true,
+          pattern: ".*parity.*"
+        },
+        {
+          exclude: true,
+          pattern: ".*mio.*"
+        },
+        {
+          exclude: true,
+          pattern: ".*tokio.*"
+        },
+        {
+          exclude: true,
+          pattern: ".*hyper.*"
+        },
+        {
+          exclude: true,
+          pattern: ".*rusoto_core.*"
+        },
+        {
+          exclude: true,
+          pattern: ".*want.*"
+        },
+        {
+          exclude: true,
+          pattern: ".*rpc.*"
+        }
+      ]
+    },
+    state_dump: false
+  },
+  network: {
+    type: "sim2h",
+    sim2h_url: "ws://localhost:9000" // 'ws://public.sim2h.net:9000'
+  } // Config.network('memory')
+};
 
 const orchestrator = new Orchestrator({
   middleware: combine(
@@ -26,47 +74,67 @@ const orchestrator = new Orchestrator({
     // callSync,
     // use the tape harness to run the tests, injects the tape API into each scenario
     // as the second argument
-    tapeExecutor(require("tape"))
-  ),
 
-  globalConfig: {
-    logger: false,
-    network: {
-      type: "sim2h",
-      sim2h_url: "wss://0.0.0.0:9000"
-    } // must use singleConductor middleware if using in-memory network
-  }
-
-  // the following are optional:
+    // must use singleConductor middleware if using in-memory network
+    tapeExecutor(require("tape")),
+    localOnly,
+    singleConductor
+    // callSync
+  )
 });
 
-const conductorConfig = {
-  instances: {
-    holo_wiki: Config.dna(dnaPath, "holo_wiki")
-  }
-};
+const dna = Config.dna(dnaPath, "holo_wiki");
+const fullConfig = Config.gen({ app: dna }, globalConfig);
+
 orchestrator.registerScenario("create profile test", async (s, t) => {
   // the 'true' is for 'start', which means boot the Conductors
-  const { alice } = await s.players({ alice: conductorConfig }, true);
-  const addr = await alice.call(
-    "holo_wiki",
-    "wiki",
-    "create_page_with_elements",
-    {
-      title: "venezuela",
-      contents: [
-        {
-          type: "p",
-          content: { Text: "text" },
-          rendered_content: "hol"
-        }
-      ]
-    }
-  );
+  const { alice } = await s.players({ alice: fullConfig }, true);
+
+  await alice.call("app", "wiki", "create_page_with_elements", {
+    title: "venezuela",
+    contents: [
+      {
+        type: "p",
+        content: "text",
+        rendered_content: "hol"
+      }
+    ]
+  });
   await s.consistency();
-  await alice.call("holo_wiki", "wiki", "get_page", {
+
+  const addr = await alice.call("app", "wiki", "get_page", {
     title: "venezuela"
   });
-  const addr3 = await alice.call("holo_wiki", "wiki", "get_home_page", {});
+  await s.consistency();
+  await alice.call("app", "wiki", "delete_element", {
+    element_address: addr.Ok.sections[0].address
+  });
+  await s.consistency();
+  await alice.call("app", "wiki", "get_page", {
+    title: "venezuela"
+  });
+  await s.consistency();
+  await alice.call("app", "wiki", "add_page_element", {
+    element: {
+      type: "ps",
+      content: "texts",
+      rendered_content: "hols"
+    },
+    title: "venezuela"
+  });
+  await s.consistency();
+  const addrw = await alice.call("app", "wiki", "get_page", {
+    title: "venezuela"
+  });
+  await s.consistency();
+  await alice.call("app", "wiki", "delete_element", {
+    element_address: addrw.Ok.sections[0].address
+  });
+  await s.consistency();
+
+  await alice.call("app", "wiki", "get_page", {
+    title: "venezuela"
+  });
+  const addr3 = await alice.call("app", "wiki", "get_home_page", {});
 });
 orchestrator.run();

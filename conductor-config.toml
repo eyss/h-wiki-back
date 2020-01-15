@@ -12,7 +12,7 @@ test_agent = true
 
 [[dnas]]
 file = '/home/empleado/Escritorio/holo_wiki/dist/holo_wiki.dna.json'
-hash = 'QmYUAJ6EqtT2nLR7AdX657bYDtXBtcYLcU4bgNyMjpETr3'
+hash = 'Qma5oo1Cc2nyPQBpkTH67bTuyVrr5n88DhsHVktGZL4kWj'
 id = 'hc-run-dna'
 
 [[instances]]
@@ -40,10 +40,6 @@ type = 'debug'
 
 [logger.rules]
 rules = []
-
-[network]
-sim2h_url = 'wss://0.0.0.0:9000'
-type = 'sim2h'
 
 [passphrase_service]
 type = 'cmd'
