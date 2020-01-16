@@ -197,7 +197,7 @@ mod wiki {
     // }
     #[zome_fn("hc_public")]
     fn create_page(title: String) -> ZomeApiResult<String> {
-        inner_create_page(title)?;
+        inner_create_page(title.clone())?;
         Ok(title)
     }
     fn inner_create_page(title: String) -> ZomeApiResult<Address> {
@@ -218,7 +218,7 @@ mod wiki {
         contents: Vec<PageElement>,
         title: String,
     ) -> ZomeApiResult<String> {
-        let page_address = inner_create_page(title)?;
+        let page_address = inner_create_page(title.clone())?;
 
         let vector: Vec<Address> = contents
             .into_iter()
@@ -238,7 +238,7 @@ mod wiki {
             title: title.clone(),
             sections: vector,
         }
-        .update(page_address);
+        .update(page_address)?;
         Ok(title)
     }
     #[zome_fn("hc_public")]
@@ -271,15 +271,23 @@ mod wiki {
             Err(r) => Err(r),
         }
     }
-    fn get_titles()->ZomeApiResult<String>{
-        let anchor_address = holochain_anchors::create_anchor("WikiPage".into(), "".into())?
+    fn get_titles() -> ZomeApiResult<Vec<String>> {
+        let anchor_address = holochain_anchors::create_anchor("WikiPage".into(), "".into())?;
+        Ok(hdk::utils::get_links_and_load_type::<WikiPage>(
+            &anchor_address,
+            LinkMatch::Exactly("anchor->wikiPage".into()),
+            LinkMatch::Any,
+        )?
+        .into_iter()
+        .map(|page| page.title)
+        .collect())
     }
     #[zome_fn("hc_public")]
     fn get_home_page() -> ZomeApiResult<HomePage> {
         let vec = get_titles()?
             .into_iter()
             .map(|strin| PageElement {
-                parent_page_anchor: None,
+                page_address: None,
                 r#type: "text".to_string(),
                 content: format!("[{}](#)", strin),
                 rendered_content: format!("<a href='#'>{}</a>", strin),
@@ -300,7 +308,7 @@ mod wiki {
         if let Ok(t) = hdk::utils::get_as_type::<WikiPage>(page_address.clone()) {
             let mut t = t;
             inner_delete_element(&mut t.sections, element_address.clone())?;
-            t.update(page_address);
+            t.clone().update(page_address)?;
             Ok(t.title)
         } else {
             Err(hdk::error::ZomeApiError::Internal("error".into()))
@@ -356,7 +364,7 @@ mod wiki {
                     title: t.title,
                     sections: vector,
                 }
-                .update(page_adress);
+                .update(page_adress)?;
                 Ok(title)
             }
             Err(r) => Err(r),
@@ -388,7 +396,7 @@ mod wiki {
         before_element_address: Address,
     ) -> ZomeApiResult<String> {
         let page_address = get_page_address_by_element_address(before_element_address.clone())?;
-        let title = hdk::utils::get_as_type::<WikiPage>(page_address)?.title;
+        let title = hdk::utils::get_as_type::<WikiPage>(page_address.clone())?.title;
         let mut element = element;
         element.page_address = Some(page_address.clone());
         let address = hdk::utils::commit_and_link(
@@ -407,7 +415,7 @@ mod wiki {
                     title: t.title,
                     sections: vector,
                 }
-                .update(page_address);
+                .update(page_address)?;
                 Ok(title)
             }
             Err(r) => Err(r),
