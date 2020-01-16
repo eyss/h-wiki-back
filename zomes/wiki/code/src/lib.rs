@@ -31,6 +31,9 @@ use holochain_anchors;
 // This is a sample zome that defines an entry type "MyEntry" that can be committed to the
 // agent's chain via the exposed function create_my_entry
 
+pub mod page;
+pub mod section;
+
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct User {
     username: String,
@@ -40,13 +43,6 @@ pub struct User {
 pub enum Content {
     Text(String),
     Binarys(Vec<u8>),
-}
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct PageElement {
-    parent_page_anchor: Option<Address>,
-    r#type: String,
-    content: String,
-    rendered_content: String,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct WikiPage {
@@ -88,6 +84,16 @@ mod wiki {
         holochain_anchors::anchor_definition()
     }
     #[entry_def]
+    fn page_def() -> ValidatingEntryType {
+        page::entry_definition()
+    }
+
+    #[entry_def]
+    fn section_def() -> ValidatingEntryType {
+        section::entry_definition()
+    }
+
+    #[entry_def]
     fn user_def() -> ValidatingEntryType {
         entry!(
             name: "user",
@@ -113,61 +119,6 @@ mod wiki {
             ]
         )
     }
-    #[entry_def]
-    fn page_def() -> ValidatingEntryType {
-        entry!(
-            name: "wikiPage",
-            description: "this is an entry representing some profile info for an agent",
-            sharing: Sharing::Public,
-            validation_package: || {
-                hdk::ValidationPackageDefinition::Entry
-            },
-            validation: | _validation_data: hdk::EntryValidationData<WikiPage>| {
-                Ok(())
-            },
-            links: [
-                from!(
-                    holochain_anchors::ANCHOR_TYPE,
-                    link_type: "anchor->wikiPage",
-                    validation_package: || {
-                        hdk::ValidationPackageDefinition::Entry
-                    },
-
-                    validation: |_validation_data: hdk::LinkValidationData| {
-                        Ok(())
-                    }
-                )
-            ]
-
-        )
-    }
-    #[entry_def]
-    fn page_element_def() -> ValidatingEntryType {
-        entry!(
-            name: "pageElement",
-            description: "this is an entry representing some profile info for an agent",
-            sharing: Sharing::Public,
-            validation_package: || {
-                hdk::ValidationPackageDefinition::Entry
-            },
-            validation: | _validation_data: hdk::EntryValidationData<PageElement>| {
-                Ok(())
-            },
-            links: [
-                from!(
-                    holochain_anchors::ANCHOR_TYPE,
-                    link_type: "anchor->pageElement",
-                    validation_package: || {
-                        hdk::ValidationPackageDefinition::Entry
-                    },
-
-                    validation: |_validation_data: hdk::LinkValidationData| {
-                        Ok(())
-                    }
-                )
-            ]
-        )
-    }
     // #[zome_fn("hc_public")]
     // fn create_user(user:User)->ZomeApiResult<Address>{
     //     let user_entry=Entry::App("user".into(),user.into());
@@ -177,25 +128,10 @@ mod wiki {
     //     Ok(user_adress)
     // }
     #[zome_fn("hc_public")]
-    fn create_page(title: String) -> ZomeApiResult<String> {
-        let page_anchor_address = get_anchor_address("wikiPage".into(), title.clone().into())?;
-        let vec: Vec<Address> = Vec::new();
-        let page_entry = Entry::App(
-            "wikiPage".into(),
-            WikiPage {
-                page_name: page_anchor_address.clone(),
-                redered_page_element: vec,
-            }
-            .into(),
-        );
-        hdk::utils::commit_and_link(
-            &page_entry,
-            &page_anchor_address,
-            "anchor->wikiPage",
-            &title,
-        )?;
-        Ok(title)
+    fn create_page(title: String) -> ZomeApiResult<Address> {
+        page::create_page_if_non_existent(title)
     }
+
     #[zome_fn("hc_public")]
     fn create_page_with_elements(
         contents: Vec<PageElement>,
