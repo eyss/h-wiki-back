@@ -42,38 +42,33 @@ pub enum Content {
     Binarys(Vec<u8>),
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct PageElement {
+pub struct Section {
     page_address: Option<Address>,
     r#type: String,
     content: String,
     rendered_content: String,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct WikiPage {
+pub struct Page {
     title: String,
     sections: Vec<Address>,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct Section {
-    address: Address,
-    section: PageElement,
-}
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct Page {
+pub struct HomePage {
     title: String,
     sections: Vec<Section>,
 }
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct HomePage {
-    title: String,
-    sections: Vec<PageElement>,
-}
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-struct Anchor {
-    anchor_type: String,
-    anchor_text: Option<String>,
-}
-impl WikiPage {
+impl Page {
+    pub fn initial(title: String) -> Page {
+        Page {
+            title,
+            sections: vec![],
+        }
+    }
+
+    pub fn from(title: String, sections: Vec<Address>) -> Page {
+        Page { title, sections }
+    }
     fn entry(self) -> Entry {
         App("wikiPage".into(), self.into())
     }
@@ -83,7 +78,7 @@ impl WikiPage {
     }
 }
 
-impl PageElement {
+impl Section {
     fn entry(self) -> Entry {
         App("pageElement".into(), self.into())
     }
@@ -141,13 +136,13 @@ mod wiki {
             validation_package: || {
                 hdk::ValidationPackageDefinition::Entry
             },
-            validation: | _validation_data: hdk::EntryValidationData<WikiPage>| {
+            validation: | _validation_data: hdk::EntryValidationData<Page>| {
                 Ok(())
             },
             links: [
                 from!(
                     holochain_anchors::ANCHOR_TYPE,
-                    link_type: "anchor->wikiPage",
+                    link_type: "anchor->Page",
                     validation_package: || {
                         hdk::ValidationPackageDefinition::Entry
                     },
@@ -169,22 +164,9 @@ mod wiki {
             validation_package: || {
                 hdk::ValidationPackageDefinition::Entry
             },
-            validation: | _validation_data: hdk::EntryValidationData<PageElement>| {
+            validation: | _validation_data: hdk::EntryValidationData<Section>| {
                 Ok(())
-            },
-            links: [
-                from!(
-                    holochain_anchors::ANCHOR_TYPE,
-                    link_type: "wikiPage->pageElement",
-                    validation_package: || {
-                        hdk::ValidationPackageDefinition::Entry
-                    },
-
-                    validation: |_validation_data: hdk::LinkValidationData| {
-                        Ok(())
-                    }
-                )
-            ]
+            }
         )
     }
     // #[zome_fn("hc_public")]
@@ -195,87 +177,53 @@ mod wiki {
     //     hdk::api::link_entries(&AGENT_ADDRESS,&user_adress,"agent->user","")?;
     //     Ok(user_adress)
     // }
+    pub fn pages_anchor() -> ZomeApiResult<Address> {
+        holochain_anchors::create_anchor("wiki_pages".into(), "all_pages".into())
+    }
     #[zome_fn("hc_public")]
     fn create_page(title: String) -> ZomeApiResult<String> {
-        inner_create_page(title.clone())?;
+        create_page_if_non_existent(title.clone())?;
         Ok(title)
     }
-    fn inner_create_page(title: String) -> ZomeApiResult<Address> {
-        let anchor_address = holochain_anchors::create_anchor("WikiPage".into(), "".into())?;
-        hdk::utils::commit_and_link(
-            &WikiPage {
-                title: title.clone(),
-                sections: Vec::<Address>::new(),
+    pub fn create_page_if_non_existent(title: String) -> ZomeApiResult<Address> {
+        let address = Page::initial(title.clone()).entry().address();
+        match hdk::get_entry(&address)? {
+            None => {
+                let page_anchor = pages_anchor()?;
+                hdk::utils::commit_and_link(
+                    &Page::initial(title).entry(),
+                    &page_anchor,
+                    "anchor->Page",
+                    "",
+                )
             }
-            .entry(),
-            &anchor_address,
-            "anchor->wikiPage",
-            &title,
-        )
+            Some(_) => Ok(address),
+        }
     }
     #[zome_fn("hc_public")]
-    fn create_page_with_elements(
-        contents: Vec<PageElement>,
-        title: String,
-    ) -> ZomeApiResult<String> {
-        let page_address = inner_create_page(title.clone())?;
-
-        let vector: Vec<Address> = contents
+    fn update_page(contents: Vec<Section>, title: String) -> ZomeApiResult<String> {
+        let page_address = create_page_if_non_existent(title.clone())?;
+        let sections: Vec<Address> = contents
             .into_iter()
             .map(|mut element| {
                 element.page_address = Some(page_address.clone());
-                hdk::utils::commit_and_link(
-                    &element.entry(),
-                    &page_address,
-                    "wikiPage->pageElement",
-                    "",
-                )
+                hdk::api::commit_entry(&element.entry())
             })
             .filter_map(Result::ok)
             .collect();
 
-        WikiPage {
-            title: title.clone(),
-            sections: vector,
-        }
-        .update(page_address)?;
+        Page::from(title.clone(), sections).update(page_address)?;
         Ok(title)
     }
     #[zome_fn("hc_public")]
     fn get_page(title: String) -> ZomeApiResult<Page> {
-        match hdk::utils::get_as_type::<WikiPage>(
-            WikiPage {
-                title: title.clone(),
-                sections: Vec::<Address>::new(),
-            }
-            .entry()
-            .address(),
-        ) {
-            Ok(t) => Ok(Page {
-                title: title,
-                sections: t
-                    .sections
-                    .into_iter()
-                    .map(
-                        |address| match hdk::utils::get_as_type::<PageElement>(address.clone()) {
-                            Ok(r) => Ok(Section {
-                                address: address,
-                                section: r,
-                            }),
-                            Err(r) => Err(r),
-                        },
-                    )
-                    .filter_map(Result::ok)
-                    .collect(),
-            }),
-            Err(r) => Err(r),
-        }
+        hdk::utils::get_as_type::<Page>(Page::initial(title).entry().address())
     }
     fn get_titles() -> ZomeApiResult<Vec<String>> {
-        let anchor_address = holochain_anchors::create_anchor("WikiPage".into(), "".into())?;
-        Ok(hdk::utils::get_links_and_load_type::<WikiPage>(
+        let anchor_address = pages_anchor()?;
+        Ok(hdk::utils::get_links_and_load_type::<Page>(
             &anchor_address,
-            LinkMatch::Exactly("anchor->wikiPage".into()),
+            LinkMatch::Exactly("anchor->Page".into()),
             LinkMatch::Any,
         )?
         .into_iter()
@@ -286,7 +234,7 @@ mod wiki {
     fn get_home_page() -> ZomeApiResult<HomePage> {
         let vec = get_titles()?
             .into_iter()
-            .map(|strin| PageElement {
+            .map(|strin| Section {
                 page_address: None,
                 r#type: "text".to_string(),
                 content: format!("[{}](#)", strin),
@@ -298,127 +246,20 @@ mod wiki {
             sections: vec,
         })
     }
-    fn get_page_address_by_element_address(element_address: Address) -> ZomeApiResult<Address> {
-        let element = hdk::utils::get_as_type::<PageElement>(element_address)?;
-        Ok(element.page_address.unwrap())
-    }
     #[zome_fn("hc_public")]
-    fn delete_element(element_address: Address) -> ZomeApiResult<String> {
-        let page_address = get_page_address_by_element_address(element_address.clone())?;
-        if let Ok(t) = hdk::utils::get_as_type::<WikiPage>(page_address.clone()) {
-            let mut t = t;
-            inner_delete_element(&mut t.sections, element_address.clone())?;
-            t.clone().update(page_address)?;
-            Ok(t.title)
-        } else {
-            Err(hdk::error::ZomeApiError::Internal("error".into()))
-        }
+    fn get_section(address: Address) -> ZomeApiResult<Section> {
+        hdk::utils::get_as_type::<Section>(address)
     }
-    fn inner_delete_element(vector: &mut Vec<Address>, address: Address) -> ZomeApiResult<Address> {
-        match vector.pop() {
-            Some(t) => {
-                if t == address {
-                    hdk::api::remove_entry(&address)
-                } else {
-                    inner_delete_element(vector, address.clone())?;
-                    vector.push(t);
-                    Ok(address)
-                }
-            }
-            _ => return Ok(address),
-        }
-    }
+
     #[zome_fn("hc_public")]
-    fn update_element(address: Address, element: PageElement) -> ZomeApiResult<Address> {
-        let old_element = hdk::utils::get_as_type::<PageElement>(address.clone())?;
-        PageElement {
+    fn update_element(address: Address, element: Section) -> ZomeApiResult<Address> {
+        let old_element = hdk::utils::get_as_type::<Section>(address.clone())?;
+        Section {
             page_address: old_element.page_address,
             r#type: element.r#type,
             content: element.content,
             rendered_content: element.rendered_content,
         }
         .update(address)
-    }
-    #[zome_fn("hc_public")]
-    fn add_page_element(element: PageElement, title: String) -> ZomeApiResult<String> {
-        let page_adress = WikiPage {
-            title: title.clone(),
-            sections: Vec::<Address>::new(),
-        }
-        .entry()
-        .address();
-        let mut element = element;
-        element.page_address = Some(page_adress.clone());
-
-        let address = hdk::utils::commit_and_link(
-            &element.entry(),
-            &page_adress,
-            "wikiPage->pageElement",
-            "",
-        )?;
-        match hdk::utils::get_as_type::<WikiPage>(page_adress.clone()) {
-            Ok(t) => {
-                let mut vector = vec![address.clone()];
-                vector.extend(t.sections);
-                WikiPage {
-                    title: t.title,
-                    sections: vector,
-                }
-                .update(page_adress)?;
-                Ok(title)
-            }
-            Err(r) => Err(r),
-        }
-    }
-    fn ordenar(mut vector: &mut Vec<Address>, address: Address, before_element_address: Address) {
-        match vector.pop() {
-            Some(t) => {
-                if t == before_element_address {
-                    vector.push(t);
-                    vector.push(address);
-                } else {
-                    ordenar(&mut vector, address, before_element_address);
-                    vector.push(t);
-                };
-            }
-            _ => return,
-        }
-    }
-    #[zome_fn("hc_public")]
-    fn add_page_element_ordered(
-        element: PageElement,
-        before_element_address: Address,
-    ) -> ZomeApiResult<String> {
-        inner_add_page_element_ordered(element, before_element_address)
-    }
-    fn inner_add_page_element_ordered(
-        element: PageElement,
-        before_element_address: Address,
-    ) -> ZomeApiResult<String> {
-        let page_address = get_page_address_by_element_address(before_element_address.clone())?;
-        let title = hdk::utils::get_as_type::<WikiPage>(page_address.clone())?.title;
-        let mut element = element;
-        element.page_address = Some(page_address.clone());
-        let address = hdk::utils::commit_and_link(
-            &element.entry(),
-            &page_address,
-            "wikiPage->pageElement",
-            "",
-        )?;
-
-        match hdk::utils::get_as_type::<WikiPage>(page_address.clone()) {
-            Ok(t) => {
-                let mut vector = t.sections;
-
-                ordenar(&mut vector, address.clone(), before_element_address);
-                WikiPage {
-                    title: t.title,
-                    sections: vector,
-                }
-                .update(page_address)?;
-                Ok(title)
-            }
-            Err(r) => Err(r),
-        }
     }
 }
