@@ -56,7 +56,7 @@ const globalConfig = {
         }
       ]
     },
-    state_dump: false
+    state_dump: true
   },
   network: {
     type: "sim2h",
@@ -90,9 +90,9 @@ orchestrator.registerScenario("create profile test", async (s, t) => {
   // the 'true' is for 'start', which means boot the Conductors
   const { alice } = await s.players({ alice: fullConfig }, true);
 
-  await alice.call("app", "wiki", "create_page_with_elements", {
+  await alice.call("app", "wiki", "create_page_with_sections", {
     title: "venezuela",
-    contents: [
+    sections: [
       {
         type: "p",
         content: "text",
@@ -106,33 +106,18 @@ orchestrator.registerScenario("create profile test", async (s, t) => {
     title: "venezuela"
   });
   await s.consistency();
+  console.log({ address: addr.Ok.sections[0].address });
   await alice.call("app", "wiki", "delete_element", {
-    element_address: addr.Ok.sections[0].address
+    address: addr.Ok.sections[0]
   });
   await s.consistency();
   await alice.call("app", "wiki", "get_page", {
     title: "venezuela"
-  });
-  await s.consistency();
-  await alice.call("app", "wiki", "add_page_element", {
-    element: {
-      type: "ps",
-      content: "texts",
-      rendered_content: "hols"
-    },
-    title: "venezuela"
-  });
-  await s.consistency();
-  const addrw = await alice.call("app", "wiki", "get_page", {
-    title: "venezuela"
-  });
-  await s.consistency();
-  await alice.call("app", "wiki", "delete_element", {
-    element_address: addrw.Ok.sections[0].address
   });
   await s.consistency();
 
-  await alice.call("app", "wiki", "get_page", {
+  await s.consistency();
+  const addrw = await alice.call("app", "wiki", "get_page", {
     title: "venezuela"
   });
   const addr3 = await alice.call("app", "wiki", "get_home_page", {});

@@ -1,7 +1,5 @@
 bridges = []
 persistence_dir = ''
-ui_bundles = []
-ui_interfaces = []
 
 [[agents]]
 id = 'hc-run-agent'
@@ -11,28 +9,42 @@ public_address = 'HcScjN8wBwrn3tuyg89aab3a69xsIgdzmX5P9537BqQZ5A7TEZu7qCY4Xzzjhm
 test_agent = true
 
 [[dnas]]
-file = '/home/empleado/Escritorio/holo_wiki/dist/holo_wiki.dna.json'
-hash = 'QmWx8yYMbHGMYkCoTcmRj5niWf5iQVzBfdLGznGwALmGEW'
-id = 'hc-run-dna'
+file = 'dist/holo_wiki.dna.json'
+hash = 'QmNtsxp3izywphX6wDiLRZ5f1oKM3MiBpVzdz3EtAR82Hg'
+id = '__H_Wiki'
 
 [[instances]]
 agent = 'hc-run-agent'
-dna = 'hc-run-dna'
+dna = '__H_Wiki'
 id = '__H_Wiki'
 
 [instances.storage]
 type = 'memory'
 
 [[interfaces]]
-admin = true
-id = 'websocket-interface'
+admin = false
+choose_free_port = false
+id = 'H_Wiki'
 
 [[interfaces.instances]]
+alias = '__H_Wiki'
 id = '__H_Wiki'
 
 [interfaces.driver]
-port = 3400
+port = 50001
 type = 'websocket'
+
+[[ui_bundles]]
+id = 'H_Wiki'
+root_dir = './build'
+
+[[ui_interfaces]]
+bind_address = '127.0.0.1'
+bundle = 'H_Wiki'
+dna_interface = 'H_Wiki'
+id = 'H_Wiki'
+port = 8800
+reroute_to_root = false
 
 [logger]
 state_dump = true

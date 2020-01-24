@@ -21,7 +21,7 @@ use hdk::prelude::Entry::App;
 use hdk::{
     entry_definition::ValidatingEntryType,
     error::ZomeApiResult,
-    // AGENT_ADDRESS,
+    //,
     // AGENT_ADDRESS, AGENT_ID_STR,
 };
 use hdk_proc_macros::zome;
@@ -30,7 +30,6 @@ use holochain_anchors;
 
 // This is a sample zome that defines an entry type "MyEntry" that can be committed to the
 // agent's chain via the exposed function create_my_entry
-
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct User {
     username: String,
@@ -43,7 +42,13 @@ pub enum Content {
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct Section {
-    page_address: Option<Address>,
+    page_address: Address,
+    r#type: String,
+    content: String,
+    rendered_content: String,
+}
+#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
+pub struct Section2 {
     r#type: String,
     content: String,
     rendered_content: String,
@@ -56,8 +61,9 @@ pub struct Page {
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct HomePage {
     title: String,
-    sections: Vec<Section>,
+    sections: Vec<Section2>,
 }
+
 impl Page {
     pub fn initial(title: String) -> Page {
         Page {
@@ -72,19 +78,19 @@ impl Page {
     fn entry(self) -> Entry {
         App("wikiPage".into(), self.into())
     }
-    fn update(self, address: Address) -> ZomeApiResult<Address> {
-        let entry = App("wikiPage".into(), self.into());
-        hdk::api::update_entry(entry, &address)
-    }
 }
 
 impl Section {
+    fn from(section: Section2, page_address: Address) -> Section {
+        Section {
+            page_address,
+            r#type: section.r#type,
+            content: section.content,
+            rendered_content: section.rendered_content,
+        }
+    }
     fn entry(self) -> Entry {
         App("pageElement".into(), self.into())
-    }
-    fn update(self, address: Address) -> ZomeApiResult<Address> {
-        let entry = App("pageElement".into(), self.into());
-        hdk::api::update_entry(entry, &address)
     }
 }
 #[zome]
@@ -115,8 +121,8 @@ mod wiki {
             },
             links: [
                 from!(
-                    "%agent_id",
-                    link_type: "agent->user",
+                    holochain_anchors::ANCHOR_TYPE,
+                    link_type: "anchor->user",
                     validation_package: || {
                         hdk::ValidationPackageDefinition::Entry
                     },
@@ -169,14 +175,6 @@ mod wiki {
             }
         )
     }
-    // #[zome_fn("hc_public")]
-    // fn create_user(user:User)->ZomeApiResult<Address>{
-    //     let user_entry=Entry::App("user".into(),user.into());
-    //     let anchor_address = holochain_anchors::create_anchor("model".into(), "soft-tail".into())?;
-    //     let user_adress=hdk::utils::commit_and_link(&user_entry,&anchor_address,"anchor->user","")?;
-    //     hdk::api::link_entries(&AGENT_ADDRESS,&user_adress,"agent->user","")?;
-    //     Ok(user_adress)
-    // }
     pub fn pages_anchor() -> ZomeApiResult<Address> {
         holochain_anchors::create_anchor("wiki_pages".into(), "all_pages".into())
     }
@@ -201,18 +199,24 @@ mod wiki {
         }
     }
     #[zome_fn("hc_public")]
-    fn update_page(contents: Vec<Section>, title: String) -> ZomeApiResult<String> {
+    fn create_page_with_sections(sections: Vec<Section2>, title: String) -> ZomeApiResult<String> {
         let page_address = create_page_if_non_existent(title.clone())?;
-        let sections: Vec<Address> = contents
+        let sections: Vec<Address> = sections
             .into_iter()
-            .map(|mut element| {
-                element.page_address = Some(page_address.clone());
-                hdk::api::commit_entry(&element.entry())
+            .map(|element| {
+                hdk::api::commit_entry(&Section::from(element, page_address.clone()).entry())
             })
             .filter_map(Result::ok)
             .collect();
 
-        Page::from(title.clone(), sections).update(page_address)?;
+        hdk::api::update_entry(Page::from(title.clone(), sections).entry(), &page_address)?;
+
+        Ok(title)
+    }
+    #[zome_fn("hc_public")]
+    fn update_page(sections: Vec<Address>, title: String) -> ZomeApiResult<String> {
+        let page_address = create_page_if_non_existent(title.clone())?;
+        hdk::api::update_entry(Page::from(title.clone(), sections).entry(), &page_address)?;
         Ok(title)
     }
     #[zome_fn("hc_public")]
@@ -234,8 +238,7 @@ mod wiki {
     fn get_home_page() -> ZomeApiResult<HomePage> {
         let vec = get_titles()?
             .into_iter()
-            .map(|strin| Section {
-                page_address: None,
+            .map(|strin| Section2 {
                 r#type: "text".to_string(),
                 content: format!("[{}](#)", strin),
                 rendered_content: format!("<a href='#'>{}</a>", strin),
@@ -252,14 +255,42 @@ mod wiki {
     }
 
     #[zome_fn("hc_public")]
-    fn update_element(address: Address, element: Section) -> ZomeApiResult<Address> {
+    fn update_element(address: Address, element: Section2) -> ZomeApiResult<Address> {
         let old_element = hdk::utils::get_as_type::<Section>(address.clone())?;
-        Section {
-            page_address: old_element.page_address,
-            r#type: element.r#type,
-            content: element.content,
-            rendered_content: element.rendered_content,
-        }
-        .update(address)
+
+        hdk::api::update_entry(
+            Section::from(element, old_element.page_address).entry(),
+            &address,
+        )
+    }
+    #[zome_fn("hc_public")]
+    fn delete_element(address: Address) -> ZomeApiResult<String> {
+        let page_address = hdk::utils::get_as_type::<Section>(address.clone())?.page_address;
+        hdk::api::remove_entry(&address)?;
+
+        let page = hdk::utils::get_as_type::<Page>(page_address.clone())?;
+        let sections = page
+            .clone()
+            .sections
+            .into_iter()
+            .filter_map(|d_address| {
+                if d_address != address {
+                    Some(d_address)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        hdk::api::update_entry(
+            Page::from(page.title.clone(), sections).entry(),
+            &page_address,
+        )?;
+
+        Ok(page.title)
+    }
+    #[zome_fn("hc_public")]
+    fn add_section(title: String, element: Section2) -> ZomeApiResult<Address> {
+        let page_address = create_page_if_non_existent(title.clone())?;
+        hdk::api::commit_entry(&Section::from(element, page_address).entry())
     }
 }
