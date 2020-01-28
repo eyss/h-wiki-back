@@ -9,6 +9,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate holochain_json_derive;
 
+use hc_roles_mixin::Role;
 use hdk::holochain_core_types::{
     dna::entry_types::Sharing,
     entry::Entry,
@@ -32,8 +33,8 @@ use holochain_anchors;
 // agent's chain via the exposed function create_my_entry
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct User {
-    username: String,
-    agent_adress: Address,
+    r#type: String,
+    data: String,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub enum Content {
@@ -97,11 +98,16 @@ impl Section {
 mod wiki {
     #[init]
     fn init() {
+        hc_roles_mixin::handlers::create_admin_role()?;
         Ok(())
     }
     #[validate_agent]
     pub fn validate_agent(validation_data: EntryValidationData<AgentId>) {
         Ok(())
+    }
+    #[entry_def]
+    fn role_entry_def() -> ValidatingEntryType {
+        hc_roles_mixin::role_entry_def()
     }
     #[entry_def]
     fn anchor_def() -> ValidatingEntryType {
@@ -174,6 +180,36 @@ mod wiki {
                 Ok(())
             }
         )
+    }
+
+    #[zome_fn("hc_public")]
+    fn create_role(role_name: String) -> ZomeApiResult<Address> {
+        hc_roles_mixin::handlers::create_role(&role_name)
+    }
+
+    #[zome_fn("hc_public")]
+    fn assign_role(role_name: String, agent_address: Address) -> ZomeApiResult<()> {
+        hc_roles_mixin::handlers::assign_role(&role_name, &agent_address)
+    }
+
+    #[zome_fn("hc_public")]
+    fn unassign_role(role_name: String, agent_address: Address) -> ZomeApiResult<()> {
+        hc_roles_mixin::handlers::unassign_role(&role_name, &agent_address)
+    }
+
+    #[zome_fn("hc_public")]
+    fn get_role(role_name: String) -> ZomeApiResult<Role> {
+        hc_roles_mixin::handlers::get_role(&role_name)
+    }
+
+    #[zome_fn("hc_public")]
+    fn get_all_roles() -> ZomeApiResult<Vec<Role>> {
+        hc_roles_mixin::handlers::get_all_roles()
+    }
+
+    #[zome_fn("hc_public")]
+    fn get_agent_roles(agent_address: Address) -> ZomeApiResult<Vec<Role>> {
+        hc_roles_mixin::handlers::get_agent_roles(&agent_address)
     }
     pub fn pages_anchor() -> ZomeApiResult<Address> {
         holochain_anchors::create_anchor("wiki_pages".into(), "all_pages".into())
@@ -264,9 +300,20 @@ mod wiki {
         )
     }
     #[zome_fn("hc_public")]
+
+    pub fn handle_receive_chat_message(message: String) -> ZomeApiResult<()> {
+        // ...
+        hdk::emit_signal(
+            "message_received",
+            JsonString::from_json(&format!("{{message: {}}}", message)),
+        )?;
+        // ...
+        Ok(())
+    }
+    #[zome_fn("hc_public")]
     fn delete_element(address: Address) -> ZomeApiResult<String> {
         let page_address = hdk::utils::get_as_type::<Section>(address.clone())?.page_address;
-        hdk::api::remove_entry(&address)?;
+        //hdk::api::remove_entry(&address)?;
 
         let page = hdk::utils::get_as_type::<Page>(page_address.clone())?;
         let sections = page
