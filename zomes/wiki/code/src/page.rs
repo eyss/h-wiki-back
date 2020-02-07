@@ -79,10 +79,10 @@ pub fn create_page_if_non_existent(title: String) -> ZomeApiResult<Address> {
         None => {
             let page_anchor = utils::anchor("wiki_pages", "all_pages")?;
             hdk::utils::commit_and_link(
-                &Page::initial(title).entry(),
+                &Page::initial(title.clone()).entry(),
                 &page_anchor,
                 "anchor->Page",
-                "",
+                &title,
             )
         }
         Some(_) => Ok(address),
@@ -118,6 +118,18 @@ pub fn get_titles() -> ZomeApiResult<Vec<String>> {
         &anchor_address,
         LinkMatch::Exactly("anchor->Page".into()),
         LinkMatch::Any,
+    )?
+    .into_iter()
+    .map(|page| page.title)
+    .collect())
+}
+
+pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
+    let anchor_address = utils::anchor("wiki_pages", "all_pages")?;
+    Ok(hdk::utils::get_links_and_load_type::<Page>(
+        &anchor_address,
+        LinkMatch::Exactly("anchor->Page".into()),
+        LinkMatch::Regex(&("^".to_owned() + &data)),
     )?
     .into_iter()
     .map(|page| page.title)

@@ -17,9 +17,10 @@ use hc_roles_mixin::Role;
 use hdk::holochain_persistence_api::cas::content::Address;
 use hdk::{
     entry_definition::ValidatingEntryType,
-    error::ZomeApiResult,
+    error::{ZomeApiError, ZomeApiResult},
     //,
-    // AGENT_ADDRESS, AGENT_ID_STR,
+    AGENT_ADDRESS,
+    //, AGENT_ID_STR,
 };
 use hdk_proc_macros::zome;
 use holochain_anchors;
@@ -38,6 +39,9 @@ mod wiki {
     #[init]
     fn init() {
         hc_roles_mixin::handlers::create_admin_role()?;
+        match hc_roles_mixin::handlers::create_role(&"Editor".to_string()) {
+            _ => (),
+        };
         Ok(())
     }
     #[validate_agent]
@@ -66,33 +70,41 @@ mod wiki {
     }
 
     #[zome_fn("hc_public")]
-    fn create_role(role_name: String) -> ZomeApiResult<Address> {
-        hc_roles_mixin::handlers::create_role(&role_name)
-    }
-
-    #[zome_fn("hc_public")]
     fn assign_role(role_name: String, agent_address: Address) -> ZomeApiResult<()> {
-        hc_roles_mixin::handlers::assign_role(&role_name, &agent_address)
+        let roles = hc_roles_mixin::handlers::get_agent_roles(&agent_address)?;
+        if roles.len() == 0 {
+            hc_roles_mixin::handlers::assign_role(&role_name, &agent_address)?;
+            Ok(())
+        } else {
+            Err(ZomeApiError::Internal(
+                "No se puede asignar mas de un role".into(),
+            ))
+        }
     }
 
     #[zome_fn("hc_public")]
     fn unassign_role(role_name: String, agent_address: Address) -> ZomeApiResult<()> {
         hc_roles_mixin::handlers::unassign_role(&role_name, &agent_address)
     }
-
     #[zome_fn("hc_public")]
-    fn get_role(role_name: String) -> ZomeApiResult<Role> {
-        hc_roles_mixin::handlers::get_role(&role_name)
+    fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
+        user::get_users(data)
     }
 
     #[zome_fn("hc_public")]
-    fn get_all_roles() -> ZomeApiResult<Vec<Role>> {
-        hc_roles_mixin::handlers::get_all_roles()
-    }
-
-    #[zome_fn("hc_public")]
-    fn get_agent_roles(agent_address: Address) -> ZomeApiResult<Vec<Role>> {
-        hc_roles_mixin::handlers::get_agent_roles(&agent_address)
+    fn get_agent_roles(agent_address: Address) -> ZomeApiResult<Role> {
+        let roles = hc_roles_mixin::handlers::get_agent_roles(&agent_address)?;
+        if roles.len() > 0 {
+            Ok(roles[0].clone())
+        } else if hc_roles_mixin::validation::is_agent_admin(&agent_address)? {
+            hc_roles_mixin::handlers::assign_role(
+                &String::from(hc_roles_mixin::ADMIN_ROLE_NAME),
+                &agent_address,
+            )?;
+            hc_roles_mixin::handlers::get_role(&hc_roles_mixin::ADMIN_ROLE_NAME.to_string())
+        } else {
+            Err(ZomeApiError::Internal("No tiene rol".into()))
+        }
     }
     #[zome_fn("hc_public")]
     fn create_page(title: String) -> ZomeApiResult<String> {
@@ -116,8 +128,16 @@ mod wiki {
         page::get_titles()
     }
     #[zome_fn("hc_public")]
+    fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
+        page::get_titles_filtered(data)
+    }
+    #[zome_fn("hc_public")]
     fn get_usernames() -> ZomeApiResult<Vec<String>> {
         user::get_usernames()
+    }
+    #[zome_fn("hc_public")]
+    fn get_username() -> ZomeApiResult<Option<String>> {
+        Ok(user::get_user_by_agent_id(&AGENT_ADDRESS)?.pop())
     }
     #[zome_fn("hc_public")]
     fn get_agent_user(user_name: String) -> ZomeApiResult<Address> {
@@ -137,7 +157,7 @@ mod wiki {
     #[zome_fn("hc_public")]
 
     fn get_user_by_agent_id(agent_id: Address) -> ZomeApiResult<String> {
-        Ok(user::get_user_by_agent_id(agent_id)?[0].clone())
+        Ok(user::get_user_by_agent_id(&agent_id)?[0].clone())
     }
     #[zome_fn("hc_public")]
     fn update_element(address: Address, element: Section2) -> ZomeApiResult<Address> {

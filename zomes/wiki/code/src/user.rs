@@ -25,17 +25,9 @@ use crate::utils;
 use holochain_anchors;
 
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct User {
-    r#type: String,
-    data: String,
-}
+pub struct User(String);
+
 impl User {
-    fn from(data: String) -> User {
-        User {
-            r#type: "username".to_string(),
-            data,
-        }
-    }
     fn entry(self) -> Entry {
         App("user".into(), self.into())
     }
@@ -87,15 +79,15 @@ pub fn user_def() -> ValidatingEntryType {
     )
 }
 pub fn create_user_if_non_existent(data: String) -> ZomeApiResult<Address> {
-    let address = User::from(data.clone()).entry().address();
+    let address = User(data.clone()).entry().address();
     match hdk::get_entry(&address)? {
         None => {
             let page_anchor = utils::anchor("users", "all_users")?;
             let address = hdk::utils::commit_and_link(
-                &User::from(data.clone()).entry(),
+                &User(data.clone()).entry(),
                 &page_anchor,
-                "anchor->User",
-                "",
+                &"anchor->User".to_string(),
+                &data,
             )?;
             hdk::api::link_entries(&address, &AGENT_ADDRESS, "User->agent", "")?;
             hdk::api::link_entries(&AGENT_ADDRESS, &address, "agent->User", "")?;
@@ -112,22 +104,33 @@ pub fn get_usernames() -> ZomeApiResult<Vec<String>> {
         LinkMatch::Any,
     )?
     .into_iter()
-    .map(|user| user.data)
+    .map(|user| user.0)
     .collect())
 }
-pub fn get_user_by_agent_id(agent_id: Address) -> ZomeApiResult<Vec<String>> {
+pub fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
+    let anchor_address = utils::anchor("users", "all_users")?;
     Ok(hdk::utils::get_links_and_load_type::<User>(
-        &agent_id,
+        &anchor_address,
+        LinkMatch::Exactly("anchor->User".into()),
+        LinkMatch::Regex(&("^".to_owned() + &data)),
+    )?
+    .into_iter()
+    .map(|user| user.0)
+    .collect())
+}
+pub fn get_user_by_agent_id(agent_id: &Address) -> ZomeApiResult<Vec<String>> {
+    Ok(hdk::utils::get_links_and_load_type::<User>(
+        agent_id,
         LinkMatch::Exactly("agent->User".into()),
         LinkMatch::Any,
     )?
     .into_iter()
-    .map(|user| user.data)
+    .map(|user| user.0)
     .collect())
 }
 pub fn get_agent_user(user_name: String) -> ZomeApiResult<Address> {
     Ok(hdk::get_links(
-        &User::from(user_name.clone()).entry().address(),
+        &User(user_name.clone()).entry().address(),
         LinkMatch::Exactly("User->agent".into()),
         LinkMatch::Any,
     )?

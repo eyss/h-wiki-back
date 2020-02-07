@@ -10,15 +10,29 @@ name = 'testAgent'
 public_address = 'HcScjN8wBwrn3tuyg89aab3a69xsIgdzmX5P9537BqQZ5A7TEZu7qCY4Xzzjhma'
 test_agent = true
 
+[[agents]]
+id = 'nulo'
+keystore_file = 'agente_null.key'
+name = 'carlos'
+public_address = 'HcScjnZOKDU9vbycti8dpvG9mjirgxcuswwkrjOGguqrf6ohD8CzPuJdBdqrndz'
+
 [[dnas]]
 file = '/home/empleado/Escritorio/holo_wiki/dist/holo_wiki.dna.json'
-hash = 'QmU1QcuEBKydRQ6M8GQVSuAcmWDVXzd8uVf9rcLcTDThgr'
+hash = 'QmdYZsEq4F7ypeiYtArTra32PVD2HYt7BjDZzAS7vo2hsj'
 id = 'hc-run-dna'
 
 [[instances]]
 agent = 'hc-run-agent'
 dna = 'hc-run-dna'
 id = '__H_Wiki'
+
+[instances.storage]
+type = 'memory'
+
+[[instances]]
+agent = 'nulo'
+dna = 'hc-run-dna'
+id = '__H_Wiki2'
 
 [instances.storage]
 type = 'memory'
@@ -44,6 +58,17 @@ id = '__H_Wiki'
 [interfaces.driver]
 port = 3401
 type = 'http'
+
+[[interfaces]]
+admin = false
+id = 'websocket-interface2'
+
+[[interfaces.instances]]
+id = '__H_Wiki2'
+
+[interfaces.driver]
+port = 3402
+type = 'websocket'
 
 [logger]
 state_dump = true
