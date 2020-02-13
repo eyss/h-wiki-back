@@ -5,6 +5,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
+use crate::utils::validate_agent_can_edit;
 use hdk::holochain_core_types::{
     dna::entry_types::Sharing,
     entry::Entry,
@@ -13,7 +14,7 @@ use hdk::holochain_core_types::{
 };
 use hdk::holochain_json_api::{error::JsonError, json::JsonString};
 use hdk::holochain_persistence_api::cas::content::{Address, AddressableContent};
-use hdk::prelude::Entry::App;
+use hdk::prelude::*;
 use hdk::{
     entry_definition::ValidatingEntryType,
     error::ZomeApiResult,
@@ -42,9 +43,10 @@ impl Page {
         Page { title, sections }
     }
     pub fn entry(self) -> Entry {
-        App("wikiPage".into(), self.into())
+        Entry::App("wikiPage".into(), self.into())
     }
 }
+
 pub fn page_def() -> ValidatingEntryType {
     entry!(
         name: "wikiPage",
@@ -54,7 +56,11 @@ pub fn page_def() -> ValidatingEntryType {
             hdk::ValidationPackageDefinition::Entry
         },
         validation: | _validation_data: hdk::EntryValidationData<Page>| {
-            Ok(())
+            match _validation_data {
+                hdk::EntryValidationData::Create { validation_data, ..} => validate_agent_can_edit(validation_data),
+                hdk::EntryValidationData::Modify { validation_data, ..} => validate_agent_can_edit(validation_data),
+                hdk::EntryValidationData::Delete { validation_data, ..} => validate_agent_can_edit(validation_data)
+            }
         },
         links: [
             from!(
@@ -65,7 +71,10 @@ pub fn page_def() -> ValidatingEntryType {
                 },
 
                 validation: |_validation_data: hdk::LinkValidationData| {
-                    Ok(())
+                    match _validation_data {
+                        hdk::LinkValidationData::LinkAdd { validation_data, .. } => validate_agent_can_edit(validation_data),
+                        hdk::LinkValidationData::LinkRemove { validation_data, .. } => validate_agent_can_edit(validation_data),
+                    }
                 }
             )
         ]

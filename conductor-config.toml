@@ -11,7 +11,7 @@ public_address = 'HcScjN8wBwrn3tuyg89aab3a69xsIgdzmX5P9537BqQZ5A7TEZu7qCY4Xzzjhm
 test_agent = true
 
 [[dnas]]
-file = '/home/empleado/Escritorio/holo_wiki/dist/holo_wiki.dna.json'
+file = './dist/h-wiki-back.dna.json'
 hash = 'QmWpPdpPihWzwyyy2hvG885VSPRxWbJSm3PfwQCzjQAbFe'
 id = 'hc-run-dna'
 
