@@ -97,11 +97,7 @@ mod wiki {
         if roles.len() > 0 {
             Ok(roles[0].clone())
         } else if hc_roles_mixin::validation::is_agent_admin(&agent_address)? {
-            hc_roles_mixin::handlers::assign_role(
-                &String::from(hc_roles_mixin::ADMIN_ROLE_NAME),
-                &agent_address,
-            )?;
-            hc_roles_mixin::handlers::get_role(&hc_roles_mixin::ADMIN_ROLE_NAME.to_string())
+            hc_roles_mixin::handlers::get_role(&"Admin".to_string())
         } else {
             Err(ZomeApiError::Internal("No tiene rol".into()))
         }

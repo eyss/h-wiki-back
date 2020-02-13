@@ -4,11 +4,10 @@ ui_bundles = []
 ui_interfaces = []
 
 [[agents]]
-id = 'hc-run-agent'
-keystore_file = 'testAgent'
-name = 'testAgent'
-public_address = 'HcScjN8wBwrn3tuyg89aab3a69xsIgdzmX5P9537BqQZ5A7TEZu7qCY4Xzzjhma'
-test_agent = true
+id = 'nulo'
+keystore_file = 'agente_null.key'
+name = 'carlos'
+public_address = 'HcScjnZOKDU9vbycti8dpvG9mjirgxcuswwkrjOGguqrf6ohD8CzPuJdBdqrndz'
 
 [[dnas]]
 file = '/home/empleado/Escritorio/holo_wiki/dist/holo_wiki.dna.json'
@@ -16,33 +15,23 @@ hash = 'QmWpPdpPihWzwyyy2hvG885VSPRxWbJSm3PfwQCzjQAbFe'
 id = 'hc-run-dna'
 
 [[instances]]
-agent = 'hc-run-agent'
+agent = 'nulo'
 dna = 'hc-run-dna'
-id = '__H_Wiki'
+id = '__H_Wiki2'
 
 [instances.storage]
 type = 'memory'
 
-[[interfaces]]
-admin = true
-id = 'websocket-interface'
-
-[[interfaces.instances]]
-id = '__H_Wiki'
-
-[interfaces.driver]
-port = 3400
-type = 'websocket'
 
 [[interfaces]]
-admin = true
-id = 'http-interface'
+admin = false
+id = 'websocket-interface2'
 
 [[interfaces.instances]]
-id = '__H_Wiki'
+id = '__H_Wiki2'
 
 [interfaces.driver]
-port = 3401
+port = 3402
 type = 'http'
 
 [logger]
@@ -58,3 +47,6 @@ type = 'cmd'
 [signals]
 consistency = false
 trace = false
+[network]
+type="sim2h"
+sim2h_url="ws://0.0.0.0:9000"

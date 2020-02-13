@@ -122,7 +122,7 @@ pub fn get_user_by_agent_id(agent_id: &Address) -> ZomeApiResult<Vec<String>> {
     Ok(hdk::utils::get_links_and_load_type::<User>(
         agent_id,
         LinkMatch::Exactly("agent->User".into()),
-        LinkMatch::Any,
+        LinkMatch::Regex("^"),
     )?
     .into_iter()
     .map(|user| user.0)
@@ -132,7 +132,7 @@ pub fn get_agent_user(user_name: String) -> ZomeApiResult<Address> {
     Ok(hdk::get_links(
         &User(user_name.clone()).entry().address(),
         LinkMatch::Exactly("User->agent".into()),
-        LinkMatch::Any,
+        LinkMatch::Regex("^"),
     )?
     .addresses()[0]
         .clone())

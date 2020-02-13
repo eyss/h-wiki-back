@@ -1,6 +1,6 @@
 [package]
 name = "wiki"
-version = "0.1.0"
+version = "1.1.10"
 authors = ["hc-scaffold-framework"]
 edition = "2018"
 
@@ -12,8 +12,8 @@ hdk = "=0.0.42-alpha3"
 hdk_proc_macros = "=0.0.42-alpha3"
 holochain_wasm_utils = "=0.0.42-alpha3"
 holochain_json_derive = "=0.0.17"
+hc_roles_mixin =   "=0.1.4"
 holochain_anchors = "=0.2.1"
-hc_roles_mixin = "0.1.4"
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
