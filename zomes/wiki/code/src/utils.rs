@@ -14,14 +14,17 @@ pub fn get_entry(address: Address) -> ZomeApiResult<JsonString> {
 
 pub fn validate_agent_can_edit(validation_data: hdk::ValidationData) -> Result<(), String> {
     let agent_address = validation_data.sources()[0].clone();
+    let timestamp = validation_data.package.chain_header.timestamp();
 
-    let is_admin = holochain_roles::validation::has_agent_role(
+    let is_admin = holochain_roles::validation::had_agent_role(
         &agent_address,
         &String::from(holochain_roles::ADMIN_ROLE_NAME),
+        timestamp,
     )?;
-    let is_editor = holochain_roles::validation::has_agent_role(
+    let is_editor = holochain_roles::validation::had_agent_role(
         &agent_address,
         &String::from(crate::EDITOR_ROLE_NAME),
+        timestamp,
     )?;
 
     match (is_admin, is_editor) {
