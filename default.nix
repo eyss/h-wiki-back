@@ -27,9 +27,6 @@ with holonix.pkgs;
   buildInputs = [ ]
    ++ holonix.shell.buildInputs
    ++ config.buildInputs
-   ++ (holonix.pkgs.callPackage ./nix {
-    holonix = holonix;
-   }).buildInputs
   ;
  });
 }
