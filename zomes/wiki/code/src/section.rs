@@ -22,25 +22,22 @@ use hdk::{
 
 use crate::page;
 use crate::page::Page;
-use crate::utils::validate_agent_can_edit;
+//use crate::utils::validate_agent_can_edit;
 
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub enum Content {
-    Text(String),
-    Binarys(Vec<u8>),
-}
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct Section {
     page_address: Address,
     r#type: String,
     content: String,
     rendered_content: String,
+    timestamp: String,
 }
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct Section2 {
     r#type: String,
     content: String,
     rendered_content: String,
+    timestamp: String,
 }
 
 impl Section {
@@ -50,6 +47,7 @@ impl Section {
             r#type: section.r#type,
             content: section.content,
             rendered_content: section.rendered_content,
+            timestamp: section.timestamp,
         }
     }
     pub fn entry(self) -> Entry {
@@ -65,11 +63,12 @@ pub fn page_element_def() -> ValidatingEntryType {
             hdk::ValidationPackageDefinition::Entry
         },
         validation: | _validation_data: hdk::EntryValidationData<Section>| {
-            match _validation_data {
-                hdk::EntryValidationData::Create { validation_data, .. } => validate_agent_can_edit(validation_data),
-                hdk::EntryValidationData::Modify { validation_data, .. } => validate_agent_can_edit(validation_data),
-                hdk::EntryValidationData::Delete { validation_data, .. } => validate_agent_can_edit(validation_data)
-            }
+            // match _validation_data {
+            //     hdk::EntryValidationData::Create { validation_data, .. } => validate_agent_can_edit(validation_data),
+            //     hdk::EntryValidationData::Modify { validation_data, .. } => validate_agent_can_edit(validation_data),
+            //     hdk::EntryValidationData::Delete { validation_data, .. } => validate_agent_can_edit(validation_data)
+            // }
+            Ok(())
         }
     )
 }
@@ -99,7 +98,7 @@ pub fn delete_element(address: Address) -> ZomeApiResult<String> {
         })
         .collect();
     hdk::api::update_entry(
-        Page::from(page.title.clone(), sections).entry(),
+        Page::from(page.title.clone(), sections, page.timestamp).entry(),
         &page_address,
     )?;
 

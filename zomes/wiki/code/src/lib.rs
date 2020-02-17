@@ -29,27 +29,22 @@ mod wiki {
     fn init() {
         Ok(())
     }
-    
     #[validate_agent]
     pub fn validate_agent(validation_data: EntryValidationData<AgentId>) {
         Ok(())
     }
-    
     #[entry_def]
     fn role_entry_def() -> ValidatingEntryType {
         holochain_roles::role_assignment_entry_def()
     }
-    
     #[entry_def]
     fn anchor_def() -> ValidatingEntryType {
         holochain_anchors::anchor_definition()
     }
-    
     #[entry_def]
     fn user_def() -> ValidatingEntryType {
         user::user_def()
     }
-    
     #[entry_def]
     fn page_def() -> ValidatingEntryType {
         page::page_def()
@@ -95,25 +90,25 @@ mod wiki {
     }
 
     #[zome_fn("hc_public")]
-    fn create_page_with_sections(sections: Vec<Section2>, title: String) -> ZomeApiResult<String> {
-        page::create_page_with_sections(sections, title)
+    fn create_page_with_sections(
+        sections: Vec<Section2>,
+        title: String,
+        timestamp: u64,
+    ) -> ZomeApiResult<String> {
+        page::create_page_with_sections(sections, title, timestamp)
     }
-    
     #[zome_fn("hc_public")]
-    fn update_page(sections: Vec<Address>, title: String) -> ZomeApiResult<String> {
-        page::update_page(sections, title)
+    fn update_page(sections: Vec<Address>, title: String, timestamp: u64) -> ZomeApiResult<String> {
+        page::update_page(sections, title, timestamp)
     }
-    
     #[zome_fn("hc_public")]
     fn get_page(title: String) -> ZomeApiResult<JsonString> {
         page::get_page(title)
     }
-    
     #[zome_fn("hc_public")]
     fn get_titles() -> ZomeApiResult<Vec<String>> {
         page::get_titles()
     }
-    
     #[zome_fn("hc_public")]
     fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
         page::get_titles_filtered(data)
@@ -123,17 +118,14 @@ mod wiki {
     fn get_usernames() -> ZomeApiResult<Vec<String>> {
         user::get_usernames()
     }
-    
     #[zome_fn("hc_public")]
     fn get_username() -> ZomeApiResult<Option<String>> {
         Ok(user::get_user_by_agent_id(&hdk::AGENT_ADDRESS)?.pop())
     }
-    
     #[zome_fn("hc_public")]
     fn get_agent_user(user_name: String) -> ZomeApiResult<Address> {
         user::get_agent_user(user_name)
     }
-    
     #[zome_fn("hc_public")]
     fn get_section(address: Address) -> ZomeApiResult<JsonString> {
         utils::get_entry(address)

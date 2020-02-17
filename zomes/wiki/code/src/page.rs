@@ -4,8 +4,7 @@ extern crate holochain_json_derive;
 extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
-
-use crate::utils::validate_agent_can_edit;
+//use crate::utils::validate_agent_can_edit;
 use hdk::holochain_core_types::{
     dna::entry_types::Sharing,
     entry::Entry,
@@ -30,17 +29,23 @@ use crate::utils;
 pub struct Page {
     pub title: String,
     pub sections: Vec<Address>,
+    pub timestamp: Option<u64>,
 }
 impl Page {
     pub fn initial(title: String) -> Page {
         Page {
             title,
             sections: vec![],
+            timestamp: None,
         }
     }
 
-    pub fn from(title: String, sections: Vec<Address>) -> Page {
-        Page { title, sections }
+    pub fn from(title: String, sections: Vec<Address>, timestamp: Option<u64>) -> Page {
+        Page {
+            title,
+            sections,
+            timestamp,
+        }
     }
     pub fn entry(self) -> Entry {
         Entry::App("wikiPage".into(), self.into())
@@ -56,11 +61,12 @@ pub fn page_def() -> ValidatingEntryType {
             hdk::ValidationPackageDefinition::Entry
         },
         validation: | _validation_data: hdk::EntryValidationData<Page>| {
-            match _validation_data {
-                hdk::EntryValidationData::Create { validation_data, ..} => validate_agent_can_edit(validation_data),
-                hdk::EntryValidationData::Modify { validation_data, ..} => validate_agent_can_edit(validation_data),
-                hdk::EntryValidationData::Delete { validation_data, ..} => validate_agent_can_edit(validation_data)
-            }
+            // match _validation_data {
+            //     hdk::EntryValidationData::Create { validation_data, ..} => validate_agent_can_edit(validation_data),
+            //     hdk::EntryValidationData::Modify { validation_data, ..} => validate_agent_can_edit(validation_data),
+            //     hdk::EntryValidationData::Delete { validation_data, ..} => validate_agent_can_edit(validation_data)
+            // }
+            Ok(())
         },
         links: [
             from!(
@@ -71,10 +77,11 @@ pub fn page_def() -> ValidatingEntryType {
                 },
 
                 validation: |_validation_data: hdk::LinkValidationData| {
-                    match _validation_data {
-                        hdk::LinkValidationData::LinkAdd { validation_data, .. } => validate_agent_can_edit(validation_data),
-                        hdk::LinkValidationData::LinkRemove { validation_data, .. } => validate_agent_can_edit(validation_data),
-                    }
+                    // match _validation_data {
+                    //     hdk::LinkValidationData::LinkAdd { validation_data, .. } => validate_agent_can_edit(validation_data),
+                    //     hdk::LinkValidationData::LinkRemove { validation_data, .. } => validate_agent_can_edit(validation_data),
+                    // }
+                    Ok(())
                 }
             )
         ]
@@ -98,7 +105,11 @@ pub fn create_page_if_non_existent(title: String) -> ZomeApiResult<Address> {
     }
 }
 
-pub fn create_page_with_sections(sections: Vec<Section2>, title: String) -> ZomeApiResult<String> {
+pub fn create_page_with_sections(
+    sections: Vec<Section2>,
+    title: String,
+    timestamp: u64,
+) -> ZomeApiResult<String> {
     let page_address = create_page_if_non_existent(title.clone())?;
     let sections: Vec<Address> = sections
         .into_iter()
@@ -108,13 +119,19 @@ pub fn create_page_with_sections(sections: Vec<Section2>, title: String) -> Zome
         .filter_map(Result::ok)
         .collect();
 
-    hdk::api::update_entry(Page::from(title.clone(), sections).entry(), &page_address)?;
+    hdk::api::update_entry(
+        Page::from(title.clone(), sections, Some(timestamp)).entry(),
+        &page_address,
+    )?;
 
     Ok(title)
 }
-pub fn update_page(sections: Vec<Address>, title: String) -> ZomeApiResult<String> {
+pub fn update_page(sections: Vec<Address>, title: String, timestamp: u64) -> ZomeApiResult<String> {
     let page_address = create_page_if_non_existent(title.clone())?;
-    hdk::api::update_entry(Page::from(title.clone(), sections).entry(), &page_address)?;
+    hdk::api::update_entry(
+        Page::from(title.clone(), sections, Some(timestamp)).entry(),
+        &page_address,
+    )?;
     Ok(title)
 }
 pub fn get_page(title: String) -> ZomeApiResult<JsonString> {
