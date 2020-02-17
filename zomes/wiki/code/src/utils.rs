@@ -12,23 +12,18 @@ pub fn get_entry(address: Address) -> ZomeApiResult<JsonString> {
     }
 }
 
-// pub fn validate_agent_can_edit(validation_data: hdk::ValidationData) -> Result<(), String> {
-//     let agent_address = validation_data.sources()[0].clone();
-//     let timestamp = validation_data.package.chain_header.timestamp();
+pub fn validate_agent_can_edit(validation_data: hdk::ValidationData) -> Result<(), String> {
+    let editor = holochain_roles::validation::validate_required_role(
+        &validation_data,
+        &String::from(crate::EDITOR_ROLE_NAME),
+    );
+    let admin = holochain_roles::validation::validate_required_role(
+        &validation_data,
+        &String::from(holochain_roles::ADMIN_ROLE_NAME),
+    );
 
-//     let is_admin = holochain_roles::validation::had_agent_role(
-//         &agent_address,
-//         &String::from(holochain_roles::ADMIN_ROLE_NAME),
-//         timestamp,
-//     )?;
-//     let is_editor = holochain_roles::validation::had_agent_role(
-//         &agent_address,
-//         &String::from(crate::EDITOR_ROLE_NAME),
-//         timestamp,
-//     )?;
-
-//     match (is_admin, is_editor) {
-//         (false, false) => Err(String::from("Only admins or editors can create pages")),
-//         _ => Ok(()),
-//     }
-//}
+    match (editor, admin) {
+        (Err(_), Err(_)) => Err(String::from("Only admins and editors edit content")),
+        _ => Ok(()),
+    }
+}

@@ -4,7 +4,7 @@ extern crate holochain_json_derive;
 extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
-//use crate::utils::validate_agent_can_edit;
+use crate::utils::validate_agent_can_edit;
 use hdk::holochain_core_types::{
     dna::entry_types::Sharing,
     entry::Entry,
@@ -61,12 +61,11 @@ pub fn page_def() -> ValidatingEntryType {
             hdk::ValidationPackageDefinition::Entry
         },
         validation: | _validation_data: hdk::EntryValidationData<Page>| {
-            // match _validation_data {
-            //     hdk::EntryValidationData::Create { validation_data, ..} => validate_agent_can_edit(validation_data),
-            //     hdk::EntryValidationData::Modify { validation_data, ..} => validate_agent_can_edit(validation_data),
-            //     hdk::EntryValidationData::Delete { validation_data, ..} => validate_agent_can_edit(validation_data)
-            // }
-            Ok(())
+            match _validation_data {
+                hdk::EntryValidationData::Create { validation_data, ..} => validate_agent_can_edit(validation_data),
+                hdk::EntryValidationData::Modify { validation_data, ..} => validate_agent_can_edit(validation_data),
+                hdk::EntryValidationData::Delete { validation_data, ..} => validate_agent_can_edit(validation_data)
+            }
         },
         links: [
             from!(
@@ -77,11 +76,10 @@ pub fn page_def() -> ValidatingEntryType {
                 },
 
                 validation: |_validation_data: hdk::LinkValidationData| {
-                    // match _validation_data {
-                    //     hdk::LinkValidationData::LinkAdd { validation_data, .. } => validate_agent_can_edit(validation_data),
-                    //     hdk::LinkValidationData::LinkRemove { validation_data, .. } => validate_agent_can_edit(validation_data),
-                    // }
-                    Ok(())
+                    match _validation_data {
+                        hdk::LinkValidationData::LinkAdd { validation_data, .. } => validate_agent_can_edit(validation_data),
+                        hdk::LinkValidationData::LinkRemove { validation_data, .. } => validate_agent_can_edit(validation_data),
+                    }
                 }
             )
         ]

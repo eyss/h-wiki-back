@@ -22,7 +22,7 @@ use hdk::{
 
 use crate::page;
 use crate::page::Page;
-//use crate::utils::validate_agent_can_edit;
+use crate::utils::validate_agent_can_edit;
 
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct Section {
@@ -63,12 +63,11 @@ pub fn page_element_def() -> ValidatingEntryType {
             hdk::ValidationPackageDefinition::Entry
         },
         validation: | _validation_data: hdk::EntryValidationData<Section>| {
-            // match _validation_data {
-            //     hdk::EntryValidationData::Create { validation_data, .. } => validate_agent_can_edit(validation_data),
-            //     hdk::EntryValidationData::Modify { validation_data, .. } => validate_agent_can_edit(validation_data),
-            //     hdk::EntryValidationData::Delete { validation_data, .. } => validate_agent_can_edit(validation_data)
-            // }
-            Ok(())
+            match _validation_data {
+                hdk::EntryValidationData::Create { validation_data, .. } => validate_agent_can_edit(validation_data),
+                hdk::EntryValidationData::Modify { validation_data, .. } => validate_agent_can_edit(validation_data),
+                hdk::EntryValidationData::Delete { validation_data, .. } => validate_agent_can_edit(validation_data)
+            }
         }
     )
 }
