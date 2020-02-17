@@ -98,7 +98,7 @@ mod wiki {
     fn create_page_with_sections(sections: Vec<Section2>, title: String) -> ZomeApiResult<String> {
         page::create_page_with_sections(sections, title)
     }
-    
+
     #[zome_fn("hc_public")]
     fn update_page(sections: Vec<Address>, title: String) -> ZomeApiResult<String> {
         page::update_page(sections, title)
