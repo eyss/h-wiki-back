@@ -12,7 +12,7 @@ test_agent = true
 
 [[dnas]]
 file = './dist/h-wiki-back.dna.json'
-hash = 'QmVxBppZYaQGjrysYYfni8cKgBwRee3HL6bgf9ZcZmbUV7'
+hash = 'QmZJS8u8DpZLVSwt7SJHrtcgF2s1M9DbDtd84NNV6Ue9tv'
 id = 'hc-run-dna'
 
 [[instances]]
@@ -51,6 +51,10 @@ type = 'debug'
 
 [logger.rules]
 rules = []
+
+[network]
+sim2h_url = 'ws://localhost:9000'
+type = 'sim2h'
 
 [passphrase_service]
 type = 'cmd'
