@@ -12,7 +12,7 @@ test_agent = true
 
 [[dnas]]
 file = './dist/h-wiki-back.dna.json'
-hash = 'QmTJwkhiFKUeK7QsRCjk1t6XCBAm31bkmHfsAEa6ZuvxCa'
+hash = 'QmcvKmNM77sqAqg5fw5UgKkZrDNZZDzXYQgYz651Qsw8Jd'
 id = 'hc-run-dna'
 
 [[instances]]

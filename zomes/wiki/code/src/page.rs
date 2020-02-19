@@ -62,8 +62,17 @@ pub fn page_def() -> ValidatingEntryType {
         },
         validation: | _validation_data: hdk::EntryValidationData<Page>| {
             match _validation_data {
-                hdk::EntryValidationData::Create { validation_data, ..} => validate_agent_can_edit(validation_data),
-                hdk::EntryValidationData::Modify { validation_data, ..} => validate_agent_can_edit(validation_data),
+                hdk::EntryValidationData::Create { validation_data, ..} => validate_agent_can_edit(validation_data)
+                ,
+                hdk::EntryValidationData::Modify { validation_data,new_entry,old_entry,..} => {
+                    validate_agent_can_edit(validation_data)?;
+                    if old_entry.title==new_entry.title{
+                        Ok(())
+                    }else{
+                        Err("no se puede actualizar un titulo".to_string())
+                    }
+
+                },
                 hdk::EntryValidationData::Delete { validation_data, ..} => validate_agent_can_edit(validation_data)
             }
         },
@@ -86,7 +95,6 @@ pub fn page_def() -> ValidatingEntryType {
 
     )
 }
-
 pub fn create_page_if_non_existent(title: String) -> ZomeApiResult<Address> {
     let address = Page::initial(title.clone()).entry().address();
     match hdk::get_entry(&address)? {
