@@ -5,14 +5,13 @@ ui_interfaces = []
 
 [[agents]]
 id = 'hc-run-agent'
-keystore_file = 'testAgent'
+keystore_file = 'keystore.key'
 name = 'testAgent'
-public_address = 'HcScjN8wBwrn3tuyg89aab3a69xsIgdzmX5P9537BqQZ5A7TEZu7qCY4Xzzjhma'
-test_agent = true
+public_address = 'HcSciC6UmH5duukm7cp4fJc3tbXOabvvpsvvmpeE3z5jxeoavhdwt9Vjzxekdhz'
 
 [[dnas]]
 file = './dist/h-wiki-back.dna.json'
-hash = 'QmcvKmNM77sqAqg5fw5UgKkZrDNZZDzXYQgYz651Qsw8Jd'
+hash = 'QmRL94KQMRTBoU9WRbP97QSyKb1KeGKu9Lr7KnNgtRv4oP'
 id = 'hc-run-dna'
 
 [[instances]]
@@ -34,17 +33,6 @@ id = '__H_Wiki'
 port = 3400
 type = 'websocket'
 
-[[interfaces]]
-admin = true
-id = 'http-interface'
-
-[[interfaces.instances]]
-id = '__H_Wiki'
-
-[interfaces.driver]
-port = 3401
-type = 'http'
-
 [logger]
 state_dump = false
 type = 'debug'
@@ -53,7 +41,7 @@ type = 'debug'
 rules = []
 
 [network]
-sim2h_url = 'ws://localhost:9000'
+sim2h_url = 'ws://public.sim2h.net:9000'
 type = 'sim2h'
 
 [passphrase_service]
