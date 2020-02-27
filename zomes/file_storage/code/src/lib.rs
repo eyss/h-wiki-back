@@ -124,7 +124,7 @@ mod file_storage {
     #[zome_fn("hc_public")]
     fn create_chunck(chunck: Vec<u8>) -> ZomeApiResult<Address> {
         let entry = Chunck::from(chunck).entry();
-        create_if_exist(entry, entry.address())
+        create_if_exist(entry.clone(), entry.address())
     }
     #[zome_fn("hc_public")]
     fn get_chunck(address: Address) -> ZomeApiResult<Chunck> {
