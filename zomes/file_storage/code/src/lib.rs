@@ -20,11 +20,11 @@ pub struct File {
     chunks: Vec<Address>,
 }
 
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
-pub struct File2 {
-    file: Vec<u8>,
-    name: String,
-}
+// #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
+// pub struct File2 {
+//     file: Vec<u8>,
+//     name: String,
+// }
 
 impl File {
     pub fn entry(self) -> Entry {
@@ -86,7 +86,7 @@ mod file_storage {
             )
             .entry(),
         )
-    } 
+    }
     #[zome_fn("hc_public")]
     fn get_file(address: Address) -> ZomeApiResult<File2> {
         let file: File = hdk::utils::get_as_type(address)?;
@@ -117,7 +117,6 @@ mod file_storage {
         let entry = file.entry();
         hdk::commit_entry(&entry)
     }
-
 }
 
 fn create_if_exist(entry: Entry, address: Address) -> ZomeApiResult<Address> {
