@@ -10,18 +10,13 @@ extern crate serde_derive;
 extern crate serde_json;
 #[macro_use]
 extern crate holochain_json_derive;
-
 use hdk::prelude::*;
 use hdk_proc_macros::zome;
-use holochain_anchors;
-
-pub const EDITOR_ROLE_NAME: &'static str = "Editor";
-
 mod page;
 mod section;
 mod user;
 mod utils;
-use section::Section2;
+pub const EDITOR_ROLE_NAME: &'static str = "Editor";
 
 #[zome]
 mod wiki {
@@ -42,19 +37,18 @@ mod wiki {
         holochain_anchors::anchor_definition()
     }
     #[entry_def]
-    fn user_def() -> ValidatingEntryType {
-        user::user_def()
-    }
-    #[entry_def]
     fn page_def() -> ValidatingEntryType {
         page::page_def()
     }
 
     #[entry_def]
-    fn page_element_def() -> ValidatingEntryType {
-        section::page_element_def()
+    fn page_section_def() -> ValidatingEntryType {
+        section::page_section_def()
     }
-
+    #[entry_def]
+    fn user_def() -> ValidatingEntryType {
+        user::user_def()
+    }
     #[zome_fn("hc_public")]
     fn assign_role(role_name: String, agent_address: Address) -> ZomeApiResult<()> {
         holochain_roles::handlers::assign_role(&role_name, &agent_address)
@@ -63,11 +57,6 @@ mod wiki {
     #[zome_fn("hc_public")]
     fn unassign_role(role_name: String, agent_address: Address) -> ZomeApiResult<()> {
         holochain_roles::handlers::unassign_role(&role_name, &agent_address)
-    }
-
-    #[zome_fn("hc_public")]
-    fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
-        user::get_users(data)
     }
 
     #[zome_fn("hc_public")]
@@ -84,36 +73,52 @@ mod wiki {
     }
 
     #[zome_fn("hc_public")]
-    fn create_page(title: String) -> ZomeApiResult<String> {
-        page::create_page_if_non_existent(title.clone())?;
+    fn create_page(title: String, timestamp: String) -> ZomeApiResult<String> {
+        page::create_page_if_non_existent(title.clone(), vec![], timestamp)?;
         Ok(title)
     }
-
     #[zome_fn("hc_public")]
     fn create_page_with_sections(
-        sections: Vec<Section2>,
+        sections: Vec<section::Section>,
         title: String,
-        timestamp: u64,
+        timestamp: String,
     ) -> ZomeApiResult<String> {
         page::create_page_with_sections(sections, title, timestamp)
     }
     #[zome_fn("hc_public")]
-    fn update_page(sections: Vec<Address>, title: String, timestamp: u64) -> ZomeApiResult<String> {
+    fn update_page(
+        sections: Vec<Address>,
+        title: String,
+        timestamp: String,
+    ) -> ZomeApiResult<String> {
         page::update_page(sections, title, timestamp)
     }
     #[zome_fn("hc_public")]
-    fn get_page(title: String) -> ZomeApiResult<JsonString> {
+    fn get_page(title: String) -> ZomeApiResult<page::Page> {
         page::get_page(title)
     }
     #[zome_fn("hc_public")]
     fn get_titles() -> ZomeApiResult<Vec<String>> {
         page::get_titles()
     }
+    // #[zome_fn("hc_public")]
+    // fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
+    //     page::get_titles_filtered(data)
+    // }
     #[zome_fn("hc_public")]
-    fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
-        page::get_titles_filtered(data)
+    fn update_element(address: Address, section: section::Section) -> ZomeApiResult<Address> {
+        section::update_element(address, section)
     }
 
+    #[zome_fn("hc_public")]
+    fn delete_element(address: Address) -> ZomeApiResult<String> {
+        section::delete_element(address)
+    }
+
+    #[zome_fn("hc_public")]
+    fn add_section(title: String, section: section::Section) -> ZomeApiResult<Address> {
+        section::add_section(title, section)
+    }
     #[zome_fn("hc_public")]
     fn get_usernames() -> ZomeApiResult<Vec<String>> {
         user::get_usernames()
@@ -141,19 +146,8 @@ mod wiki {
     fn get_user_by_agent_id(agent_id: Address) -> ZomeApiResult<String> {
         Ok(user::get_user_by_agent_id(&agent_id)?[0].clone())
     }
-
-    #[zome_fn("hc_public")]
-    fn update_element(address: Address, element: Section2) -> ZomeApiResult<Address> {
-        section::update_element(address, element)
-    }
-
-    #[zome_fn("hc_public")]
-    fn delete_element(address: Address) -> ZomeApiResult<String> {
-        section::delete_element(address)
-    }
-
-    #[zome_fn("hc_public")]
-    fn add_section(title: String, element: Section2) -> ZomeApiResult<Address> {
-        section::add_section(title, element)
-    }
+    // #[zome_fn("hc_public")]
+    // fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
+    //     user::get_users(data)
+    // }
 }

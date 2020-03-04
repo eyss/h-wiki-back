@@ -1,125 +1,54 @@
-/// NB: The try-o-rama config patterns are still not quite stabilized.
-/// See the try-o-rama README [https://github.com/holochain/try-o-rama]
+/// NB: The tryorama config patterns are still not quite stabilized.
+/// See the tryorama README [https://github.com/holochain/tryorama]
 /// for a potentially more accurate example
 
-const path = require("path");
+const path = require('path')
 
-const {
-  Orchestrator,
-  Config,
-  tapeExecutor,
-  singleConductor,
-  localOnly,
-  combine,
-  callSync
-} = require("@holochain/tryorama");
+const { Orchestrator, Config, combine, singleConductor, localOnly, tapeExecutor } = require('@holochain/tryorama')
 
-process.on("unhandledRejection", error => {
+process.on('unhandledRejection', error => {
   // Will print "unhandledRejection err is not defined"
-  console.error("got unhandledRejection:", error);
+  console.error('got unhandledRejection:', error);
 });
 
-const dnaPath = path.join(__dirname, "../dist/holo_wiki.dna.json");
-
-const globalConfig = {
-  logger: {
-    type: "info",
-    rules: {
-      rules: [
-        {
-          exclude: true,
-          pattern: ".*parity.*"
-        },
-        {
-          exclude: true,
-          pattern: ".*mio.*"
-        },
-        {
-          exclude: true,
-          pattern: ".*tokio.*"
-        },
-        {
-          exclude: true,
-          pattern: ".*hyper.*"
-        },
-        {
-          exclude: true,
-          pattern: ".*rusoto_core.*"
-        },
-        {
-          exclude: true,
-          pattern: ".*want.*"
-        },
-        {
-          exclude: true,
-          pattern: ".*rpc.*"
-        }
-      ]
-    },
-    state_dump: true
-  },
-  network: {
-    type: "sim2h",
-    sim2h_url: "ws://localhost:9000" // 'ws://public.sim2h.net:9000'
-  } // Config.network('memory')
-};
+const dnaPath = path.join(__dirname, "../dist/h-wiki-back2.dna.json")
 
 const orchestrator = new Orchestrator({
   middleware: combine(
+    // use the tape harness to run the tests, injects the tape API into each scenario
+    // as the second argument
+    tapeExecutor(require('tape')),
+
+    // specify that all "players" in the test are on the local machine, rather than
+    // on remote machines
+    localOnly,
+
     // squash all instances from all conductors down into a single conductor,
     // for in-memory testing purposes.
     // Remove this middleware for other "real" network types which can actually
     // send messages across conductors
-    // singleConductor,
-    // callSync,
-    // use the tape harness to run the tests, injects the tape API into each scenario
-    // as the second argument
+    singleConductor,
+  ),
+})
 
-    // must use singleConductor middleware if using in-memory network
-    tapeExecutor(require("tape")),
-    localOnly,
-    singleConductor
-    // callSync
-  )
-});
+const dna = Config.dna(dnaPath, 'scaffold-test')
+const conductorConfig = Config.gen({myInstanceName: dna})
 
-const dna = Config.dna(dnaPath, "holo_wiki");
-const fullConfig = Config.gen({ app: dna }, globalConfig);
+orchestrator.registerScenario("description of example test", async (s, t) => {
 
-orchestrator.registerScenario("create profile test", async (s, t) => {
-  // the 'true' is for 'start', which means boot the Conductors
-  const { alice } = await s.players({ alice: fullConfig }, true);
+  const {alice, bob} = await s.players({alice: conductorConfig, bob: conductorConfig}, true)
 
-  await alice.call("app", "wiki", "create_page_with_sections", {
-    title: "venezuela",
-    sections: [
-      {
-        type: "p",
-        content: "text",
-        rendered_content: "hol"
-      }
-    ]
-  });
-  await s.consistency();
+  // Make a call to a Zome function
+  // indicating the function, and passing it an input
+  const addr = await alice.call("myInstanceName", "my_zome", "create_my_entry", {"entry" : {"content":"sample content"}})
 
-  const addr = await alice.call("app", "wiki", "get_page", {
-    title: "venezuela"
-  });
-  await s.consistency();
-  console.log({ address: addr.Ok.sections[0].address });
-  await alice.call("app", "wiki", "delete_element", {
-    address: addr.Ok.sections[0]
-  });
-  await s.consistency();
-  await alice.call("app", "wiki", "get_page", {
-    title: "venezuela"
-  });
-  await s.consistency();
+  // Wait for all network activity to settle
+  await s.consistency()
 
-  await s.consistency();
-  const addrw = await alice.call("app", "wiki", "get_page", {
-    title: "venezuela"
-  });
-  const addr3 = await alice.call("app", "wiki", "get_home_page", {});
-});
-orchestrator.run();
+  const result = await bob.call("myInstanceName", "my_zome", "get_my_entry", {"address": addr.Ok})
+
+  // check for equality of the actual and expected results
+  t.deepEqual(result, { Ok: { App: [ 'my_entry', '{"content":"sample content"}' ] } })
+})
+
+orchestrator.run()

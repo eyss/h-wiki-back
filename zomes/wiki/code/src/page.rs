@@ -21,26 +21,16 @@ use hdk::{
     // AGENT_ADDRESS, AGENT_ID_STR,
 };
 
-use crate::section::{Section, Section2};
+use crate::section::Section;
 use holochain_anchors;
-
-use crate::utils;
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct Page {
     pub title: String,
     pub sections: Vec<Address>,
-    pub timestamp: Option<u64>,
+    pub timestamp: String,
 }
 impl Page {
-    pub fn initial(title: String) -> Page {
-        Page {
-            title,
-            sections: vec![],
-            timestamp: None,
-        }
-    }
-
-    pub fn from(title: String, sections: Vec<Address>, timestamp: Option<u64>) -> Page {
+    pub fn from(title: String, sections: Vec<Address>, timestamp: String) -> Page {
         Page {
             title,
             sections,
@@ -51,7 +41,6 @@ impl Page {
         Entry::App("wikiPage".into(), self.into())
     }
 }
-
 pub fn page_def() -> ValidatingEntryType {
     entry!(
         name: "wikiPage",
@@ -95,75 +84,109 @@ pub fn page_def() -> ValidatingEntryType {
 
     )
 }
-pub fn create_page_if_non_existent(title: String) -> ZomeApiResult<Address> {
-    let address = Page::initial(title.clone()).entry().address();
-    match hdk::get_entry(&address)? {
-        None => {
-            let page_anchor = utils::anchor("wiki_pages", "all_pages")?;
-            hdk::utils::commit_and_link(
-                &Page::initial(title.clone()).entry(),
-                &page_anchor,
-                "anchor->Page",
-                &title,
-            )
-        }
-        Some(_) => Ok(address),
-    }
-}
-
-pub fn create_page_with_sections(
-    sections: Vec<Section2>,
+pub fn create_page_if_non_existent(
     title: String,
-    timestamp: u64,
-) -> ZomeApiResult<String> {
-    let page_address = create_page_if_non_existent(title.clone())?;
-    let sections: Vec<Address> = sections
-        .into_iter()
-        .map(|element| {
-            hdk::api::commit_entry(&Section::from(element, page_address.clone()).entry())
-        })
-        .filter_map(Result::ok)
-        .collect();
-
-    hdk::api::update_entry(
-        Page::from(title.clone(), sections, Some(timestamp)).entry(),
-        &page_address,
-    )?;
-
-    Ok(title)
-}
-pub fn update_page(sections: Vec<Address>, title: String, timestamp: u64) -> ZomeApiResult<String> {
-    let page_address = create_page_if_non_existent(title.clone())?;
-    hdk::api::update_entry(
-        Page::from(title.clone(), sections, Some(timestamp)).entry(),
-        &page_address,
-    )?;
-    Ok(title)
-}
-pub fn get_page(title: String) -> ZomeApiResult<JsonString> {
-    utils::get_entry(Page::initial(title).entry().address())
-}
-
-pub fn get_titles() -> ZomeApiResult<Vec<String>> {
-    let anchor_address = utils::anchor("wiki_pages", "all_pages")?;
-    Ok(hdk::utils::get_links_and_load_type::<Page>(
+    sections: Vec<Address>,
+    timestamp: String,
+) -> ZomeApiResult<Address> {
+    let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
+    if let Some(address) = hdk::get_links(
         &anchor_address,
-        LinkMatch::Exactly("anchor->Page".into()),
+        LinkMatch::Exactly("anchor->Page"),
         LinkMatch::Any,
     )?
-    .into_iter()
-    .map(|page| page.title)
-    .collect())
-}
+    .addresses()
+    .pop()
+    {
+        Ok(address)
+    } else {
+        let page_entry = Page::from(title.clone(), sections, timestamp).entry();
 
-pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
-    let anchor_address = utils::anchor("wiki_pages", "all_pages")?;
-    Ok(hdk::utils::get_links_and_load_type::<Page>(
-        &anchor_address,
-        LinkMatch::Exactly("anchor->Page".into()),
-        LinkMatch::Regex(&("^".to_owned() + &data)),
-    )?
-    .into_iter()
-    .map(|page| page.title)
-    .collect())
+        hdk::utils::commit_and_link(&page_entry, &anchor_address, "anchor->Page", &title)
+    }
 }
+pub fn create_page_with_sections(
+    sections: Vec<Section>,
+    title: String,
+    timestamp: String,
+) -> ZomeApiResult<String> {
+    let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
+
+    create_page_if_non_existent(
+        title.clone(),
+        sections
+            .into_iter()
+            .map(|section| hdk::api::commit_entry(&section.from(anchor_address.clone()).entry()))
+            .filter_map(Result::ok)
+            .collect(),
+        timestamp,
+    )?;
+
+    Ok(title)
+}
+pub fn update_page(
+    sections: Vec<Address>,
+    title: String,
+    timestamp: String,
+) -> ZomeApiResult<String> {
+    let page_address =
+        create_page_if_non_existent(title.clone(), sections.clone(), timestamp.clone())?;
+    hdk::api::update_entry(
+        Page::from(title.clone(), sections, timestamp).entry(),
+        &page_address,
+    )?;
+    Ok(title)
+}
+pub fn get_page(title: String) -> ZomeApiResult<Page> {
+    hdk::utils::get_as_type(
+        hdk::get_links(
+            &holochain_anchors::anchor("wik_pages".into(), title)?,
+            LinkMatch::Exactly("anchor->page "),
+            LinkMatch::Any,
+        )?
+        .addresses()[0]
+            .clone(),
+    )
+}
+pub fn get_titles() -> ZomeApiResult<Vec<String>> {
+    let anchor_address = Entry::App(
+        holochain_anchors::ANCHOR_TYPE.into(),
+        holochain_anchors::Anchor {
+            anchor_type: "wiki_pages".to_string(),
+            anchor_text: None,
+        }
+        .into(),
+    )
+    .address();
+    Ok(
+        hdk::utils::get_links_and_load_type::<holochain_anchors::Anchor>(
+            &anchor_address,
+            LinkMatch::Exactly("holochain_anchors::anchor_link").into(),
+            LinkMatch::Any,
+        )?
+        .into_iter()
+        .map(|anchor| anchor.anchor_text.unwrap())
+        .collect(),
+    )
+}
+// pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
+//     let anchor_address = Entry::App(
+//         holochain_anchors::ANCHOR_TYPE.into(),
+//         holochain_anchors::Anchor {
+//             anchor_type: "wiki_pages".to_string(),
+//             anchor_text: None,
+//         }
+//         .into(),
+//     )
+//     .address();
+//     Ok(
+//         hdk::utils::get_links_and_load_type::<holochain_anchors::Anchor>(
+//             &anchor_address,
+//             LinkMatch::Exactly("holochain_anchors::anchor_link").into(),
+//             LinkMatch::Regex(&("^".to_owned() + &data)),
+//         )?
+//         .into_iter()
+//         .map(|anchor| anchor.anchor_text.unwrap())
+//         .collect(),
+//     )
+// }
