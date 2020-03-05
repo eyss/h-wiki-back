@@ -138,17 +138,17 @@ pub fn update_page(
     Ok(title)
 }
 pub fn get_page(title: String) -> ZomeApiResult<Page> {
-    hdk::utils::get_as_type(
-        hdk::get_links(
-            &holochain_anchors::anchor("wik_pages".into(), title)?,
-            LinkMatch::Exactly("anchor->page "),
-            LinkMatch::Any,
-        )?
-        .addresses()[0]
-            .clone(),
-    )
+    Ok(hdk::utils::get_links_and_load_type::<Page>(
+        &holochain_anchors::anchor("wiki_pages".into(), title)?,
+        LinkMatch::Exactly("anchor->Page"),
+        LinkMatch::Any,
+    )?[0]
+        .clone())
 }
 pub fn get_titles() -> ZomeApiResult<Vec<String>> {
+    get_titles_filtered("".to_string())
+}
+pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
     let anchor_address = Entry::App(
         holochain_anchors::ANCHOR_TYPE.into(),
         holochain_anchors::Anchor {
@@ -165,28 +165,14 @@ pub fn get_titles() -> ZomeApiResult<Vec<String>> {
             LinkMatch::Any,
         )?
         .into_iter()
-        .map(|anchor| anchor.anchor_text.unwrap())
+        .filter_map(|anchor| anchor.anchor_text)
+        .filter_map(|text: String| {
+            if text.clone().contains(&data) {
+                Some(text)
+            } else {
+                None
+            }
+        })
         .collect(),
     )
 }
-// pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
-//     let anchor_address = Entry::App(
-//         holochain_anchors::ANCHOR_TYPE.into(),
-//         holochain_anchors::Anchor {
-//             anchor_type: "wiki_pages".to_string(),
-//             anchor_text: None,
-//         }
-//         .into(),
-//     )
-//     .address();
-//     Ok(
-//         hdk::utils::get_links_and_load_type::<holochain_anchors::Anchor>(
-//             &anchor_address,
-//             LinkMatch::Exactly("holochain_anchors::anchor_link").into(),
-//             LinkMatch::Regex(&("^".to_owned() + &data)),
-//         )?
-//         .into_iter()
-//         .map(|anchor| anchor.anchor_text.unwrap())
-//         .collect(),
-//     )
-// }

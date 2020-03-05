@@ -10,8 +10,8 @@ name = 'testAgent'
 public_address = 'HcSciC6UmH5duukm7cp4fJc3tbXOabvvpsvvmpeE3z5jxeoavhdwt9Vjzxekdhz'
 
 [[dnas]]
-file = './dist/h-wiki-back.dna.json'
-hash = 'Qmds7SKaUk3NNetFqiJpo7hukFNwCF7qaz5gceqc2yHQZe'
+file = './dist/h-wiki-back2.dna.json'
+hash = 'QmTTbGEhHRSVBPwMVshMtmXdnm8L3EjxAbnp33weRJHY1Z'
 id = 'hc-run-dna'
 
 [[instances]]
@@ -40,9 +40,7 @@ type = 'debug'
 [logger.rules]
 rules = []
 
-[network]
-sim2h_url = 'ws://public.sim2h.net:9000'
-type = 'sim2h'
+
 
 [passphrase_service]
 type = 'cmd'

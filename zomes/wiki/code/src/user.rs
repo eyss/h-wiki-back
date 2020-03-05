@@ -106,17 +106,24 @@ pub fn get_usernames() -> ZomeApiResult<Vec<String>> {
     .map(|user| user.0)
     .collect())
 }
-// pub fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
-//     let anchor_address = utils::anchor("users", "all_users")?;
-//     Ok(hdk::utils::get_links_and_load_type::<User>(
-//         &anchor_address,
-//         LinkMatch::Exactly("anchor->User".into()),
-//         LinkMatch::Regex(&("^".to_owned() + &data)),
-//     )?
-//     .into_iter()
-//     .map(|user| user.0)
-//     .collect())
-// }
+pub fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
+    let anchor_address = holochain_anchors::anchor("users".to_string(), "all_users".to_string())?;
+    Ok(hdk::utils::get_links_and_load_type::<User>(
+        &anchor_address,
+        LinkMatch::Exactly("anchor->User".into()),
+        LinkMatch::Any,
+    )?
+    .into_iter()
+    .map(|user| user.0)
+    .filter_map(|text: String| {
+        if text.clone().contains(&data) {
+            Some(text)
+        } else {
+            None
+        }
+    })
+    .collect())
+}
 pub fn get_user_by_agent_id(agent_id: &Address) -> ZomeApiResult<Vec<String>> {
     Ok(hdk::utils::get_links_and_load_type::<User>(
         agent_id,

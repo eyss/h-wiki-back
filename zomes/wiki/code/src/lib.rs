@@ -101,18 +101,18 @@ mod wiki {
     fn get_titles() -> ZomeApiResult<Vec<String>> {
         page::get_titles()
     }
-    // #[zome_fn("hc_public")]
-    // fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
-    //     page::get_titles_filtered(data)
-    // }
     #[zome_fn("hc_public")]
-    fn update_element(address: Address, section: section::Section) -> ZomeApiResult<Address> {
-        section::update_element(address, section)
+    fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
+        page::get_titles_filtered(data)
+    }
+    #[zome_fn("hc_public")]
+    fn update_section(address: Address, section: section::Section) -> ZomeApiResult<Address> {
+        section::update_section(address, section)
     }
 
     #[zome_fn("hc_public")]
-    fn delete_element(address: Address) -> ZomeApiResult<String> {
-        section::delete_element(address)
+    fn delete_section(address: Address) -> ZomeApiResult<String> {
+        section::delete_section(address)
     }
 
     #[zome_fn("hc_public")]
@@ -146,8 +146,8 @@ mod wiki {
     fn get_user_by_agent_id(agent_id: Address) -> ZomeApiResult<String> {
         Ok(user::get_user_by_agent_id(&agent_id)?[0].clone())
     }
-    // #[zome_fn("hc_public")]
-    // fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
-    //     user::get_users(data)
-    // }
+    #[zome_fn("hc_public")]
+    fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
+        user::get_users(data)
+    }
 }
