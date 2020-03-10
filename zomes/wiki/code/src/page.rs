@@ -16,7 +16,7 @@ use hdk::holochain_persistence_api::cas::content::{Address, AddressableContent};
 use hdk::prelude::*;
 use hdk::{
     entry_definition::ValidatingEntryType,
-    error::ZomeApiResult,
+    error::{ZomeApiError, ZomeApiResult},
     //,
     // AGENT_ADDRESS, AGENT_ID_STR,
 };
@@ -117,7 +117,10 @@ pub fn create_page_with_sections(
     let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
     let sections_address: Vec<Address> = sections_entry
         .into_iter()
-        .map(|section| hdk::commit_entry(&section.from(anchor_address.clone()).entry()))
+        .map(|section| {
+            let sections_entry = section.from(anchor_address.clone()).entry();
+            hdk::commit_entry(&sections_entry)
+        })
         .filter_map(Result::ok)
         .collect();
     let page_address = create_page_if_non_existent(title.clone(), timestamp.clone())?;
@@ -152,17 +155,19 @@ pub fn update_page(
 }
 
 pub fn get_page(title: String) -> ZomeApiResult<Page> {
-    hdk::utils::get_as_type(
-        hdk::get_links(
-            &holochain_anchors::anchor("wiki_pages".into(), title)?,
-            LinkMatch::Exactly("anchor->page"),
-            LinkMatch::Any,
-        )?
-        .addresses()
-        .last()
-        .unwrap()
-        .clone(),
-    )
+    let address = match hdk::get_links(
+        &holochain_anchors::anchor("wiki_pages".into(), title)?,
+        LinkMatch::Exactly("anchor->page"),
+        LinkMatch::Any,
+    )?
+    .addresses()
+    .last()
+    {
+        Some(address) => Ok(address),
+        None => Err(ZomeApiError::Internal("This page no exist".to_string())),
+    }?
+    .clone();
+    hdk::utils::get_as_type(address)
 }
 
 pub fn get_titles() -> ZomeApiResult<Vec<String>> {
