@@ -22,13 +22,16 @@ use hdk::{
 };
 
 use crate::section::Section;
+
 use holochain_anchors;
+
 #[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
 pub struct Page {
     pub title: String,
     pub sections: Vec<Address>,
     pub timestamp: String,
 }
+
 impl Page {
     pub fn from(title: String, sections: Vec<Address>, timestamp: String) -> Page {
         Page {
@@ -41,6 +44,7 @@ impl Page {
         Entry::App("wikiPage".into(), self.into())
     }
 }
+
 pub fn page_def() -> ValidatingEntryType {
     entry!(
         name: "wikiPage",
@@ -68,7 +72,7 @@ pub fn page_def() -> ValidatingEntryType {
         links: [
             from!(
                 holochain_anchors::ANCHOR_TYPE,
-                link_type: "anchor->Page",
+                link_type: "anchor->page",
                 validation_package: || {
                     hdk::ValidationPackageDefinition::Entry
                 },
@@ -84,6 +88,7 @@ pub fn page_def() -> ValidatingEntryType {
 
     )
 }
+
 pub fn create_page_if_non_existent(
     title: String,
     sections: Vec<Address>,
@@ -92,40 +97,38 @@ pub fn create_page_if_non_existent(
     let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
     if let Some(address) = hdk::get_links(
         &anchor_address,
-        LinkMatch::Exactly("anchor->Page"),
+        LinkMatch::Exactly("anchor->page"),
         LinkMatch::Any,
     )?
     .addresses()
-    .pop()
+    .last()
     {
-        Ok(address)
+        Ok(address.clone())
     } else {
         let page_entry = Page::from(title.clone(), sections, timestamp).entry();
 
         let address = hdk::commit_entry(&page_entry)?;
-        hdk::link_entries(&anchor_address, &address, "anchor->Page", "")?;
+        hdk::link_entries(&anchor_address, &address, "anchor->page", "")?;
         Ok(address)
     }
 }
+
 pub fn create_page_with_sections(
     sections: Vec<Section>,
     title: String,
     timestamp: String,
 ) -> ZomeApiResult<String> {
     let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
-
-    create_page_if_non_existent(
-        title.clone(),
-        sections
-            .into_iter()
-            .map(|section| hdk::api::commit_entry(&section.from(anchor_address.clone()).entry()))
-            .filter_map(Result::ok)
-            .collect(),
-        timestamp,
-    )?;
+    let sections: Vec<Address> = sections
+        .into_iter()
+        .map(|section| hdk::commit_entry(&section.from(anchor_address.clone()).entry()))
+        .filter_map(Result::ok)
+        .collect();
+    create_page_if_non_existent(title.clone(), sections, timestamp)?;
 
     Ok(title)
 }
+
 pub fn update_page(
     sections: Vec<Address>,
     title: String,
@@ -133,23 +136,24 @@ pub fn update_page(
 ) -> ZomeApiResult<String> {
     let page_address =
         create_page_if_non_existent(title.clone(), sections.clone(), timestamp.clone())?;
-    let new_address = hdk::api::update_entry(
+    let new_address = hdk::update_entry(
         Page::from(title.clone(), sections, timestamp).entry(),
         &page_address,
     )?;
     hdk::link_entries(
         &holochain_anchors::anchor("wiki_pages".into(), title.clone())?,
         &new_address,
-        "anchor->Page",
+        "anchor->page",
         "",
     )?;
     Ok(title)
 }
+
 pub fn get_page(title: String) -> ZomeApiResult<Page> {
     hdk::utils::get_as_type(
         hdk::get_links(
             &holochain_anchors::anchor("wiki_pages".into(), title)?,
-            LinkMatch::Exactly("anchor->Page"),
+            LinkMatch::Exactly("anchor->page"),
             LinkMatch::Any,
         )?
         .addresses()
@@ -158,9 +162,11 @@ pub fn get_page(title: String) -> ZomeApiResult<Page> {
         .clone(),
     )
 }
+
 pub fn get_titles() -> ZomeApiResult<Vec<String>> {
     get_titles_filtered("".to_string())
 }
+
 pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
     let anchor_address = Entry::App(
         holochain_anchors::ANCHOR_TYPE.into(),
@@ -171,21 +177,24 @@ pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
         .into(),
     )
     .address();
-    Ok(
-        hdk::utils::get_links_and_load_type::<holochain_anchors::Anchor>(
-            &anchor_address,
-            LinkMatch::Exactly("holochain_anchors::anchor_link").into(),
-            LinkMatch::Any,
-        )?
-        .into_iter()
-        .filter_map(|anchor| anchor.anchor_text)
-        .filter_map(|text: String| {
+
+    let titles = hdk::utils::get_links_and_load_type::<holochain_anchors::Anchor>(
+        &anchor_address,
+        LinkMatch::Exactly("holochain_anchors::anchor_link").into(),
+        LinkMatch::Any,
+    )?
+    .into_iter()
+    .filter_map(|anchor| match anchor.anchor_text {
+        Some(text) => {
             if text.clone().contains(&data) {
                 Some(text)
             } else {
                 None
             }
-        })
-        .collect(),
-    )
+        }
+        None => None,
+    })
+    .collect();
+
+    Ok(titles)
 }

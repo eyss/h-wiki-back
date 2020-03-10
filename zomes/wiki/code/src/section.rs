@@ -43,12 +43,13 @@ impl Section {
         }
     }
     pub fn entry(self) -> Entry {
-        Entry::App("pageSection".into(), self.into())
+        Entry::App("page_section".into(), self.into())
     }
 }
+
 pub fn page_section_def() -> ValidatingEntryType {
     entry!(
-        name: "pageSection",
+        name: "page_section",
         description: "this is an entry representing some profile info for an agent",
         sharing: Sharing::Public,
         validation_package: || {
@@ -63,52 +64,66 @@ pub fn page_section_def() -> ValidatingEntryType {
         }
     )
 }
-pub fn update_section(address: Address, mut section: Section) -> ZomeApiResult<Address> {
-    let old_section = hdk::utils::get_as_type::<Section>(address.clone())?;
+
+pub fn update_section(
+    old_section_address: Address,
+    mut section: Section,
+) -> ZomeApiResult<Address> {
+    let old_section = hdk::utils::get_as_type::<Section>(old_section_address.clone())?;
+
     let anchor_address_option = old_section.anchor_address;
+
     section.anchor_address = anchor_address_option.clone();
-    let new_address = hdk::api::update_entry(section.entry(), &address)?;
+
+    let new_address = hdk::update_entry(section.entry(), &old_section_address)?;
+
     if let Some(anchor_address) = anchor_address_option {
         let page_address = hdk::get_links(
             &anchor_address,
-            LinkMatch::Exactly("anchor->Page"),
+            LinkMatch::Exactly("anchor->page"),
             LinkMatch::Any,
         )?
-        .addresses()[0]
-            .clone();
+        .addresses()
+        .last()
+        .unwrap()
+        .clone();
+
         let page: Page = hdk::utils::get_as_type(page_address.clone())?;
+
         let sections = page
             .clone()
             .sections
             .into_iter()
-            .filter_map(|d_address| {
-                if d_address != address {
-                    Some(d_address)
+            .filter_map(|o_address| {
+                if o_address != old_section_address {
+                    Some(o_address)
                 } else {
                     Some(new_address.clone())
                 }
             })
             .collect();
 
-        hdk::api::update_entry(
+        hdk::update_entry(
             Page::from(page.title.clone(), sections, page.timestamp).entry(),
             &page_address,
         )?;
     };
     Ok(new_address)
 }
+
 pub fn delete_section(address: Address) -> ZomeApiResult<String> {
     let anchor_address = hdk::utils::get_as_type::<Section>(address.clone())?
         .anchor_address
         .unwrap();
-    //hdk::api::remove_entry(&address)?;
+    //hdk::remove_entry(&address)?;
     let page_address = hdk::get_links(
         &anchor_address,
-        LinkMatch::Exactly("anchor->Page"),
+        LinkMatch::Exactly("anchor->page"),
         LinkMatch::Any,
     )?
     .addresses()[0]
         .clone();
+
     let page: Page = hdk::utils::get_as_type(page_address.clone())?;
     let sections = page
         .clone()
@@ -123,14 +138,15 @@ pub fn delete_section(address: Address) -> ZomeApiResult<String> {
         })
         .collect();
 
-    hdk::api::update_entry(
+    hdk::update_entry(
         Page::from(page.title.clone(), sections, page.timestamp).entry(),
         &page_address,
     )?;
-    hdk::api::remove_entry(&address)?;
+    hdk::remove_entry(&address)?;
     Ok(page.title)
 }
+
 pub fn add_section(title: String, section: Section) -> ZomeApiResult<Address> {
     let anchor_address = holochain_anchors::anchor("wiki_pages".into(), title)?;
-    hdk::api::commit_entry(&section.from(anchor_address).entry())
+    hdk::commit_entry(&section.from(anchor_address).entry())
 }
