@@ -89,11 +89,7 @@ pub fn page_def() -> ValidatingEntryType {
     )
 }
 
-pub fn create_page_if_non_existent(
-    title: String,
-    sections: Vec<Address>,
-    timestamp: String,
-) -> ZomeApiResult<Address> {
+pub fn create_page_if_non_existent(title: String, timestamp: String) -> ZomeApiResult<Address> {
     let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
     if let Some(address) = hdk::get_links(
         &anchor_address,
@@ -105,7 +101,7 @@ pub fn create_page_if_non_existent(
     {
         Ok(address.clone())
     } else {
-        let page_entry = Page::from(title.clone(), sections, timestamp).entry();
+        let page_entry = Page::from(title.clone(), vec![], timestamp).entry();
 
         let address = hdk::commit_entry(&page_entry)?;
         hdk::link_entries(&anchor_address, &address, "anchor->page", "")?;
@@ -114,18 +110,19 @@ pub fn create_page_if_non_existent(
 }
 
 pub fn create_page_with_sections(
-    sections: Vec<Section>,
+    sections_entry: Vec<Section>,
     title: String,
     timestamp: String,
 ) -> ZomeApiResult<String> {
     let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
-    let sections: Vec<Address> = sections
+    let sections_address: Vec<Address> = sections_entry
         .into_iter()
         .map(|section| hdk::commit_entry(&section.from(anchor_address.clone()).entry()))
         .filter_map(Result::ok)
         .collect();
-    create_page_if_non_existent(title.clone(), sections, timestamp)?;
-
+    let page_address = create_page_if_non_existent(title.clone(), timestamp)?;
+    let new_page_entry = Page::from(title, sections_address, timestamp).entry();
+    hdk::update_entry(new_page_entry, &page_address)?;
     Ok(title)
 }
 
@@ -134,8 +131,7 @@ pub fn update_page(
     title: String,
     timestamp: String,
 ) -> ZomeApiResult<String> {
-    let page_address =
-        create_page_if_non_existent(title.clone(), sections.clone(), timestamp.clone())?;
+    let page_address = create_page_if_non_existent(title.clone(), timestamp.clone())?;
     let new_address = hdk::update_entry(
         Page::from(title.clone(), sections, timestamp).entry(),
         &page_address,
