@@ -115,16 +115,15 @@ pub fn create_page_with_sections(
     timestamp: String,
 ) -> ZomeApiResult<String> {
     let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
-    let sections_address: Vec<Address> = sections_entry
+    let sections_address: ZomeApiResult<Vec<Address>> = sections_entry
         .into_iter()
         .map(|section| {
             let sections_entry = section.from(anchor_address.clone()).entry();
             hdk::commit_entry(&sections_entry)
         })
-        .filter_map(Result::ok)
         .collect();
     let page_address = create_page_if_non_existent(title.clone(), timestamp.clone())?;
-    let new_page_entry = Page::from(title.clone(), sections_address, timestamp).entry();
+    let new_page_entry = Page::from(title.clone(), sections_address?, timestamp).entry();
     let new_address = hdk::update_entry(new_page_entry, &page_address)?;
     hdk::link_entries(
         &holochain_anchors::anchor("wiki_pages".into(), title.clone())?,
