@@ -10,7 +10,7 @@ name = 'testAgent'
 public_address = 'HcSciC6UmH5duukm7cp4fJc3tbXOabvvpsvvmpeE3z5jxeoavhdwt9Vjzxekdhz'
 
 [[dnas]]
-file = './dist/h-wiki-back2.dna.json'
+file = './dist/h-wiki-back.dna.json'
 hash = 'QmTTbGEhHRSVBPwMVshMtmXdnm8L3EjxAbnp33weRJHY1Z'
 id = 'hc-run-dna'
 
