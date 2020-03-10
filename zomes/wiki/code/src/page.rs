@@ -120,8 +120,8 @@ pub fn create_page_with_sections(
         .map(|section| hdk::commit_entry(&section.from(anchor_address.clone()).entry()))
         .filter_map(Result::ok)
         .collect();
-    let page_address = create_page_if_non_existent(title.clone(), timestamp)?;
-    let new_page_entry = Page::from(title, sections_address, timestamp).entry();
+    let page_address = create_page_if_non_existent(title.clone(), timestamp.clone())?;
+    let new_page_entry = Page::from(title.clone(), sections_address, timestamp).entry();
     hdk::update_entry(new_page_entry, &page_address)?;
     Ok(title)
 }
