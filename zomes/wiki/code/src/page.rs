@@ -91,14 +91,12 @@ pub fn page_def() -> ValidatingEntryType {
 
 pub fn create_page_if_non_existent(title: String, timestamp: String) -> ZomeApiResult<Address> {
     let anchor_address = holochain_anchors::anchor("wiki_pages".to_string(), title.clone())?;
-    if let Some(address) = hdk::get_links(
+    let option_address = hdk::get_links(
         &anchor_address,
         LinkMatch::Exactly("anchor->page"),
         LinkMatch::Any,
-    )?
-    .addresses()
-    .last()
-    {
+    )?;
+    if let Some(address) = option_address.addresses().last() {
         Ok(address.clone())
     } else {
         let page_entry = Page::from(title.clone(), vec![], timestamp).entry();
@@ -140,10 +138,8 @@ pub fn update_page(
     timestamp: String,
 ) -> ZomeApiResult<String> {
     let page_address = create_page_if_non_existent(title.clone(), timestamp.clone())?;
-    let new_address = hdk::update_entry(
-        Page::from(title.clone(), sections, timestamp).entry(),
-        &page_address,
-    )?;
+    let new_page_entry = Page::from(title.clone(), sections, timestamp).entry();
+    let new_address = hdk::update_entry(new_page_entry, &page_address)?;
     hdk::link_entries(
         &holochain_anchors::anchor("wiki_pages".into(), title.clone())?,
         &new_address,
@@ -154,19 +150,16 @@ pub fn update_page(
 }
 
 pub fn get_page(title: String) -> ZomeApiResult<Page> {
-    let address = match hdk::get_links(
+    let option_address = hdk::get_links(
         &holochain_anchors::anchor("wiki_pages".into(), title)?,
         LinkMatch::Exactly("anchor->page"),
         LinkMatch::Any,
-    )?
-    .addresses()
-    .last()
-    {
-        Some(address) => Ok(address),
-        None => Err(ZomeApiError::Internal("This page no exist".to_string())),
-    }?
-    .clone();
-    hdk::utils::get_as_type(address)
+    )?;
+    if let Some(address) = option_address.addresses().last() {
+        hdk::utils::get_as_type(address.clone())
+    } else {
+        Err(ZomeApiError::Internal("This page no exist".to_string()))
+    }
 }
 
 pub fn get_titles() -> ZomeApiResult<Vec<String>> {
@@ -184,21 +177,20 @@ pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
     )
     .address();
 
-    let titles = hdk::utils::get_links_and_load_type::<holochain_anchors::Anchor>(
+    let titles = hdk::get_links_with_options(
         &anchor_address,
         LinkMatch::Exactly("holochain_anchors::anchor_link").into(),
         LinkMatch::Any,
+        GetLinksOptions::default(),
     )?
+    .tags()
     .into_iter()
-    .filter_map(|anchor| match anchor.anchor_text {
-        Some(text) => {
-            if text.clone().contains(&data) {
-                Some(text)
-            } else {
-                None
-            }
+    .filter_map(|text| {
+        if text.clone().contains(&data) {
+            Some(text)
+        } else {
+            None
         }
-        None => None,
     })
     .collect();
 

@@ -116,13 +116,18 @@ pub fn delete_section(address: Address) -> ZomeApiResult<String> {
         .anchor_address
         .unwrap();
     //hdk::remove_entry(&address)?;
-    let page_address = hdk::get_links(
+    let page_address = match hdk::get_links(
         &anchor_address,
         LinkMatch::Exactly("anchor->page"),
         LinkMatch::Any,
     )?
-    .addresses()[0]
-        .clone();
+    .addresses()
+    .first()
+    {
+        Some(address) => Ok(address),
+        None => Err(ZomeApiError::Internal("This page no exist".to_string())),
+    }?
+    .clone();
 
     let page: Page = hdk::utils::get_as_type(page_address.clone())?;
     let sections = page
@@ -137,11 +142,8 @@ pub fn delete_section(address: Address) -> ZomeApiResult<String> {
             }
         })
         .collect();
-
-    hdk::update_entry(
-        Page::from(page.title.clone(), sections, page.timestamp).entry(),
-        &page_address,
-    )?;
+    let new_page_entry = Page::from(page.title.clone(), sections, page.timestamp).entry();
+    hdk::update_entry(new_page_entry, &page_address)?;
     hdk::remove_entry(&address)?;
     Ok(page.title)
 }
