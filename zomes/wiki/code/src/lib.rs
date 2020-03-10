@@ -79,7 +79,7 @@ mod wiki {
 
     #[zome_fn("hc_public")]
     fn create_page(title: String, timestamp: String) -> ZomeApiResult<String> {
-        page::create_page_if_non_existent(title.clone(), vec![], timestamp)?;
+        page::create_page_if_non_existent(title.clone(), timestamp)?;
         Ok(title)
     }
 
