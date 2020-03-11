@@ -78,35 +78,32 @@ pub fn update_section(
     let new_address = hdk::update_entry(section.entry(), &old_section_address)?;
 
     if let Some(anchor_address) = anchor_address_option {
-        let page_address = hdk::get_links(
+        let option_page_address = hdk::get_links(
             &anchor_address,
             LinkMatch::Exactly("anchor->page"),
             LinkMatch::Any,
-        )?
-        .addresses()
-        .last()
-        .unwrap()
-        .clone();
-
-        let page: Page = hdk::utils::get_as_type(page_address.clone())?;
-
-        let sections = page
-            .clone()
-            .sections
-            .into_iter()
-            .filter_map(|o_address| {
-                if o_address != old_section_address {
-                    Some(o_address)
-                } else {
-                    Some(new_address.clone())
-                }
-            })
-            .collect();
-
-        hdk::update_entry(
-            Page::from(page.title.clone(), sections, page.timestamp).entry(),
-            &page_address,
         )?;
+        if let Some(page_address) = option_page_address.addresses().last() {
+            let page: Page = hdk::utils::get_as_type(page_address.clone())?;
+
+            let sections = page
+                .clone()
+                .sections
+                .into_iter()
+                .filter_map(|o_address| {
+                    if o_address != old_section_address {
+                        Some(o_address)
+                    } else {
+                        Some(new_address.clone())
+                    }
+                })
+                .collect();
+
+            hdk::update_entry(
+                Page::from(page.title.clone(), sections, page.timestamp).entry(),
+                &page_address,
+            )?;
+        }
     };
     Ok(new_address)
 }
