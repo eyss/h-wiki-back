@@ -8,10 +8,8 @@ id = 'hc-run-agent'
 keystore_file = 'keystore.key'
 name = 'testAgent'
 public_address = 'HcSciC6UmH5duukm7cp4fJc3tbXOabvvpsvvmpeE3z5jxeoavhdwt9Vjzxekdhz'
-
-[[dnas]]
-file = './dist/h-wiki-back.dna.json'
-hash = 'Qma446H5szHoE4ZFpyBkm8nj9vM74H7k653zoi2jRBWxuF'
+file = './dist/h-wiki-back2.dna.json'
+hash = 'QmPNj2jfKiJUjTvcwhfBs3HMnRcnT9UfD1o3oSanzSEHmQ'
 id = 'hc-run-dna'
 
 [[instances]]
@@ -40,9 +38,7 @@ type = 'debug'
 [logger.rules]
 rules = []
 
-[network]
-sim2h_url = 'ws://public.sim2h.net:9000'
-type = 'sim2h'
+
 
 [passphrase_service]
 type = 'cmd'
