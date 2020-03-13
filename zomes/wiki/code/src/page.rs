@@ -147,15 +147,36 @@ pub fn get_titles() -> ZomeApiResult<Vec<String>> {
     .map(|page| page.title)
     .collect())
 }
+}
+
 
 pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {
-    let anchor_address = utils::anchor("wiki_pages", "all_pages")?;
-    Ok(hdk::utils::get_links_and_load_type::<Page>(
+    let anchor_address = Entry::App(
+        holochain_anchors::ANCHOR_TYPE.into(),
+        holochain_anchors::Anchor {
+            anchor_type: "wiki_pages".to_string(),
+            anchor_text: None,
+        }
+        .into(),
+    )
+    .address();
+
+    let titles = hdk::get_links_with_options(
         &anchor_address,
-        LinkMatch::Exactly("anchor->Page".into()),
-        LinkMatch::Regex(&("^".to_owned() + &data)),
+        LinkMatch::Exactly("holochain_anchors::anchor_link").into(),
+        LinkMatch::Any,
+        GetLinksOptions::default(),
     )?
+    .tags()
     .into_iter()
-    .map(|page| page.title)
-    .collect())
+    .filter_map(|text| {
+        if text.clone().contains(&data) {
+            Some(text)
+        } else {
+            None
+        }
+    })
+    .collect();
+
+    Ok(titles)
 }
