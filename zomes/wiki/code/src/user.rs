@@ -107,32 +107,42 @@ pub fn get_usernames() -> ZomeApiResult<Vec<String>> {
     .map(|user| user.0)
     .collect())
 }
+
 pub fn get_users(data: String) -> ZomeApiResult<Vec<String>> {
-    let anchor_address = utils::anchor("users", "all_users")?;
+    let anchor_address = holochain_anchors::anchor("users".to_string(), "all_users".to_string())?;
     Ok(hdk::utils::get_links_and_load_type::<User>(
         &anchor_address,
         LinkMatch::Exactly("anchor->User".into()),
-        LinkMatch::Regex(&("^".to_owned() + &data)),
+        LinkMatch::Any,
     )?
     .into_iter()
     .map(|user| user.0)
+    .filter_map(|text: String| {
+        if text.clone().contains(&data) {
+            Some(text)
+        } else {
+            None
+        }
+    })
     .collect())
 }
+
 pub fn get_user_by_agent_id(agent_id: &Address) -> ZomeApiResult<Vec<String>> {
     Ok(hdk::utils::get_links_and_load_type::<User>(
         agent_id,
         LinkMatch::Exactly("agent->User".into()),
-        LinkMatch::Regex("^"),
+        LinkMatch::Any,
     )?
     .into_iter()
     .map(|user| user.0)
     .collect())
 }
+
 pub fn get_agent_user(user_name: String) -> ZomeApiResult<Address> {
     Ok(hdk::get_links(
         &User(user_name.clone()).entry().address(),
         LinkMatch::Exactly("User->agent".into()),
-        LinkMatch::Regex("^"),
+        LinkMatch::Any,
     )?
     .addresses()[0]
         .clone())
