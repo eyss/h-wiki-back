@@ -147,7 +147,6 @@ pub fn get_titles() -> ZomeApiResult<Vec<String>> {
     .map(|page| page.title)
     .collect())
 }
-}
 
 
 pub fn get_titles_filtered(data: String) -> ZomeApiResult<Vec<String>> {

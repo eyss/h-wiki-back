@@ -2,7 +2,7 @@ use hdk::prelude::*;
 use holochain_anchors;
 
 pub fn anchor(anchor_type: &'static str, anchor_text: &'static str) -> ZomeApiResult<Address> {
-    holochain_anchors::create_anchor(anchor_type.into(), anchor_text.into())
+    holochain_anchors::anchor(anchor_type.into(), anchor_text.into())
 }
 
 pub fn get_entry(address: Address) -> ZomeApiResult<JsonString> {

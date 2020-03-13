@@ -1,20 +1,21 @@
 [package]
 name = "wiki"
-version = "1.1.10"
+version = "0.1.0"
 authors = ["hc-scaffold-framework"]
 edition = "2018"
 
 [dependencies]
-serde = "=1.0.89"
-serde_json = { version = "=1.0.39", features = ["preserve_order"] }
-serde_derive = "=1.0.89"
-hdk = "=0.0.42-alpha3"
-holochain_json_api = "0.0.17" 
-hdk_proc_macros = "=0.0.42-alpha3"
-holochain_wasm_utils = "=0.0.42-alpha3"
-holochain_json_derive = "=0.0.17"
-holochain_roles = "=0.1.5"
-holochain_anchors = "=0.2.1"
+serde = "^1.0"
+serde_json = { version = "^1.0", features = ["preserve_order"] }
+serde_derive = "^1.0"
+hdk = "=0.0.45-alpha1"
+holochain_json_api = "0.0" 
+hdk_proc_macros = "=0.0.45-alpha1"
+holochain_wasm_utils = "=0.0.45-alpha1"
+holochain_json_derive = "=0.0"
+holochain_roles =  { path = "../../../../holochain_roles" }
+holochain_anchors = { path = "../../../../holochain_anchors" }
+
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
