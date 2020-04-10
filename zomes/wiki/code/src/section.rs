@@ -23,7 +23,7 @@ use hdk::{
 use crate::page::Page;
 use crate::utils::validate_agent_can_edit;
 
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
+#[derive(Serialize, Deserialize, Debug, hdk::prelude::DefaultJson, Clone)]
 pub struct Section {
     anchor_address: Option<Address>,
     r#type: String,

@@ -3,3 +3,4 @@ target/
 .hc
 example-config/
 .cargo/
+dist

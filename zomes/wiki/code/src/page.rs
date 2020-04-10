@@ -25,7 +25,7 @@ use crate::section::Section;
 
 use holochain_anchors;
 
-#[derive(Serialize, Deserialize, Debug, DefaultJson, Clone)]
+#[derive(Serialize, Deserialize, Debug, hdk::prelude::DefaultJson, Clone)]
 pub struct Page {
     pub title: String,
     pub sections: Vec<Address>,
