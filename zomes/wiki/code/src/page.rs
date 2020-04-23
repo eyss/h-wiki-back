@@ -96,7 +96,7 @@ pub fn create_page_if_non_existent(title: String, timestamp: String) -> ZomeApiR
         LinkMatch::Exactly("anchor->page"),
         LinkMatch::Any,
     )?;
-    if let Some(address) = option_address.addresses().last() {
+    if let Some(address) = option_address.addresses().first() {
         Ok(address.clone())
     } else {
         let page_entry = Page::from(title.clone(), vec![], timestamp).entry();
@@ -120,16 +120,8 @@ pub fn create_page_with_sections(
             hdk::commit_entry(&sections_entry)
         })
         .collect();
-    let page_address = create_page_if_non_existent(title.clone(), timestamp.clone())?;
-    let new_page_entry = Page::from(title.clone(), sections_address?, timestamp).entry();
-    let new_address = hdk::update_entry(new_page_entry, &page_address)?;
-    hdk::link_entries(
-        &holochain_anchors::anchor("wiki_pages".into(), title.clone())?,
-        &new_address,
-        "anchor->page",
-        "",
-    )?;
-    Ok(title)
+    update_page(sections_address?,title.clone(),timestamp)
+   
 }
 
 pub fn update_page(
@@ -155,7 +147,7 @@ pub fn get_page(title: String) -> ZomeApiResult<Page> {
         LinkMatch::Exactly("anchor->page"),
         LinkMatch::Any,
     )?;
-    if let Some(address) = option_address.addresses().last() {
+    if let Some(address) = option_address.addresses().first() {
         hdk::utils::get_as_type(address.clone())
     } else {
         Err(ZomeApiError::Internal("This page no exist".to_string()))

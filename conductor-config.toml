@@ -8,13 +8,16 @@ id = 'hc-run-agent'
 keystore_file = 'keystore.key'
 name = 'testAgent'
 public_address = 'HcSciC6UmH5duukm7cp4fJc3tbXOabvvpsvvmpeE3z5jxeoavhdwt9Vjzxekdhz'
-file = './dist/h-wiki-back2.dna.json'
-hash = 'QmPNj2jfKiJUjTvcwhfBs3HMnRcnT9UfD1o3oSanzSEHmQ'
+
+[[dnas]]
+file = '/home/hector/Escritorio/h-wiki-back/dist/h-wiki-back.dna.json'
+hash = 'QmRBRuBKfNJy3LELPPUmYGtkR4xBTYJhhCnx2qGjxZCvTR'
 id = 'hc-run-dna'
 
 [[instances]]
 agent = 'hc-run-agent'
 dna = 'hc-run-dna'
+
 id = '__H_Wiki'
 
 [instances.storage]

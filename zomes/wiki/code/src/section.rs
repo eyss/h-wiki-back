@@ -20,7 +20,7 @@ use hdk::{
     // AGENT_ADDRESS, AGENT_ID_STR,
 };
 
-use crate::page::Page;
+use crate::page::*;
 use crate::utils::validate_agent_can_edit;
 
 #[derive(Serialize, Deserialize, Debug, hdk::prelude::DefaultJson, Clone)]
@@ -83,7 +83,7 @@ pub fn update_section(
             LinkMatch::Exactly("anchor->page"),
             LinkMatch::Any,
         )?;
-        if let Some(page_address) = option_page_address.addresses().last() {
+        if let Some(page_address) = option_page_address.addresses().first() {
             let page: Page = hdk::utils::get_as_type(page_address.clone())?;
 
             let sections = page
@@ -98,11 +98,9 @@ pub fn update_section(
                     }
                 })
                 .collect();
-
-            hdk::update_entry(
-                Page::from(page.title.clone(), sections, page.timestamp).entry(),
-                &page_address,
-            )?;
+                update_page(sections,page.title.clone(),page.timestamp)?;
+           
+            
         }
     };
     Ok(new_address)
@@ -139,8 +137,7 @@ pub fn delete_section(address: Address) -> ZomeApiResult<String> {
             }
         })
         .collect();
-    let new_page_entry = Page::from(page.title.clone(), sections, page.timestamp).entry();
-    hdk::update_entry(new_page_entry, &page_address)?;
+    update_page(sections,page.title.clone(),page.timestamp)?;
     hdk::remove_entry(&address)?;
     Ok(page.title)
 }
