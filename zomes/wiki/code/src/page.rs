@@ -130,7 +130,7 @@ pub fn update_page(
     timestamp: String,
 ) -> ZomeApiResult<String> {
     let page_address = create_page_if_non_existent(title.clone(), timestamp.clone())?;
-    let new_page_entry = Page::from(title.clone(), sections, timestamp).entry();
+    let new_page_entry = Page::from(title.clone(), sections, timestamp +&String::from("ss random")).entry();
     let new_address = hdk::update_entry(new_page_entry, &page_address)?;
     hdk::link_entries(
         &holochain_anchors::anchor("wiki_pages".into(), title.clone())?,
