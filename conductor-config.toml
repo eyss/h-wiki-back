@@ -10,8 +10,8 @@ name = 'testAgent'
 public_address = 'HcSciC6UmH5duukm7cp4fJc3tbXOabvvpsvvmpeE3z5jxeoavhdwt9Vjzxekdhz'
 
 [[dnas]]
-file = '/home/hector/Escritorio/h-wiki-back/dist/h-wiki-back.dna.json'
-hash = 'QmXMkVAApazyxHvMe3tMamEnMkNwBB8dRHXc4D3bfLbtZ2'
+file = 'dist/h-wiki-back.dna.json'
+hash = 'QmT5PKN2xq5QjgsrbpmLopkpEZnwoKJnuuYrH8bpgBZEFX'
 id = 'hc-run-dna'
 
 [[instances]]
