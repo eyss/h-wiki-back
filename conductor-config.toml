@@ -5,13 +5,13 @@ ui_interfaces = []
 
 [[agents]]
 id = 'hc-run-agent'
-keystore_file = 'keystore.key'
+keystore_file = 'progenitor.key'
 name = 'testAgent'
-public_address = 'HcSciC6UmH5duukm7cp4fJc3tbXOabvvpsvvmpeE3z5jxeoavhdwt9Vjzxekdhz'
+public_address = 'HcSCjJ93RTGiptwuex4tbi8MAorIf4zt7K4Yds9Zv6tQxnngpRHtZx64nx3zs8r'
 
 [[dnas]]
 file = 'dist/h-wiki-back.dna.json'
-hash = 'QmT5PKN2xq5QjgsrbpmLopkpEZnwoKJnuuYrH8bpgBZEFX'
+hash = 'QmbdLxKLRUSZiXkgLSCTKvZJKyYjWyyGBTfaymsSXQmqBT'
 id = 'hc-run-dna'
 
 [[instances]]
@@ -52,5 +52,5 @@ trace = false
 
 [network]
 type = 'sim2h'
-sim2h_url = 'ws://localhost:9000'
+sim2h_url = 'ws://public-v4.sim2h.net:9000'
 
