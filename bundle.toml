@@ -3,12 +3,12 @@ bridges = []
 [[instances]]
 name = "H_Wiki"
 id = "__H_Wiki"
-dna_hash = "QmbdLxKLRUSZiXkgLSCTKvZJKyYjWyyGBTfaymsSXQmqBT"
-uri = "https://github.com/eyss/h-wiki-back/releases/download/0.4/h-wiki-back.dna.json"
+dna_hash = "QmYxzurHHhydVXX9yt2vmd2obS6TU99KkFKhnRH4pd6NQs"
+uri = "https://github.com/eyss/h-wiki-back/releases/download/0.5/h-wiki-back.dna.json"
 
 [[UIs]]
 name = "H-Wiki"
-uri = "https://github.com/eyss/h-wiki-back/releases/download/0.4/ui.zip"
+uri = "https://github.com/eyss/h-wiki-back/releases/download/0.5/ui.zip"
 
 [[UIs.instance_references]]
 ui_handle = "__H_Wiki"
