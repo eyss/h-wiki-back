@@ -7,11 +7,11 @@ ui_interfaces = []
 id = 'hc-run-agent'
 keystore_file = 'progenitor.key'
 name = 'testAgent'
-public_address = 'HcScI6smzjnde43az3d3Q7SekUdc5fzosTz8c59VXu95m83wMhzX3ht3Yja6vna'
+public_address = 'HcScJGrkzS44w6wc9qQh9YWqszfabk4wniSi5BT3QjNhh9ykI79mTxpJqnvxmvi'
 
 [[dnas]]
 file = 'dist/h-wiki-back.dna.json'
-hash = 'Qmf4KzHK9LRxaTxRykervLAUQzuv8CE12fRhtBkw7BPypv'
+hash = 'QmYxzurHHhydVXX9yt2vmd2obS6TU99KkFKhnRH4pd6NQs'
 id = 'hc-run-dna'
 
 [[instances]]
